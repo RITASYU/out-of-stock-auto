@@ -3,17 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>每日缺貨資料彙總</title>
+    <title>每日缺貨資料彙總 - 自動擷取</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
-        .drop-zone {
-            transition: all 0.3s ease;
-            border: 2px dashed #cbd5e1;
-        }
-        .drop-zone.drag-over {
-            border-color: #3b82f6;
-            background-color: #eff6ff;
-        }
         .sticky-header th {
             position: sticky;
             top: 0;
@@ -37,14 +31,82 @@
         .text-tiny {
             font-size: 0.7rem;
         }
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .animate-pulse-subtle {
+            animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen p-4 md:p-8">
     <div class="max-w-[1600px] mx-auto">
         <!-- Header -->
-        <div class="mb-6 text-center">
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">📦 每日缺貨資料彙總</h1>
-            <!-- 副標題文字已刪除 -->
+        <div class="relative mb-6 flex flex-col md:flex-row items-center justify-between pb-2 border-b border-gray-200">
+            <div class="flex items-center gap-3 mb-2 md:mb-0">
+                <span class="text-3xl">📦</span>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800">每日缺貨資料彙總</h1>
+                    <p class="text-xs text-gray-500">自動擷取當日缺貨與在途報表</p>
+                </div>
+            </div>
+
+            <!-- Top Right Date & Actions -->
+            <div class="flex flex-wrap items-center gap-2 mt-2 md:mt-0">
+                <span id="supabaseStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 border border-yellow-200 rounded-lg text-xs font-semibold text-yellow-800">
+                    <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+                    <span id="statusText">連線中</span>
+                </span>
+
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 shadow-sm rounded-lg text-xs font-semibold text-gray-700">
+                    <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <span id="currentDateText">--</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Supabase Data Sync Banner -->
+        <div class="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-gray-800 text-sm">資料自動擷取狀態</h3>
+                        <span id="targetDateBadge" class="bg-indigo-100 text-indigo-800 text-[11px] px-2 py-0.5 rounded font-mono font-medium">當前查詢日期: --</span>
+                    </div>
+                    <p id="syncDetailText" class="text-xs text-gray-500 mt-0.5">自動連接 Supabase (daily-files) 讀取當天缺貨資料檔。</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 w-full md:w-auto justify-end shrink-0">
+                <input type="date" id="queryDatePicker" onchange="changeQueryDate(this.value)" class="text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 text-gray-700 bg-gray-50">
+                <button onclick="fetchTodayDataFromSupabase()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    重新擷取資料
+                </button>
+            </div>
+        </div>
+
+        <!-- Loaded Files Badge List -->
+        <div id="fileStatusContainer" class="mb-4 flex flex-wrap items-center gap-2 min-h-[28px]">
+            <span class="text-xs font-semibold text-gray-400">當前資料庫載入檔案：</span>
+            <div id="fileStatus" class="flex flex-wrap gap-2">
+                <span class="text-xs text-gray-400 italic">尚未載入檔案</span>
+            </div>
+        </div>
+
+        <div id="errorMessage" class="mb-6 text-sm text-red-600 hidden bg-red-50 p-3 rounded-lg border border-red-200 flex justify-between items-center">
+            <span id="errorText"></span>
+            <button onclick="document.getElementById('errorMessage').classList.add('hidden')" class="text-red-500 font-bold ml-2">&times;</button>
         </div>
 
         <!-- Tab Navigation -->
@@ -58,22 +120,6 @@
             <button onclick="switchTab('tab3')" id="btn-tab3" class="tab-btn px-6 py-3 font-bold text-sm text-gray-500 transition-all duration-200 whitespace-nowrap">
                 在途資料
             </button>
-        </div>
-
-        <!-- Upload Section -->
-        <div class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-200">
-            <div id="dropZone" class="drop-zone rounded-lg p-8 text-center cursor-pointer bg-gray-50 hover:bg-gray-100">
-                <input type="file" id="fileInput" class="hidden" multiple accept=".txt,.csv">
-                <div class="flex flex-col items-center">
-                    <svg class="w-10 h-10 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                    </svg>
-                    <p class="text-lg font-medium text-gray-700">點擊或拖放檔案至此處</p>
-                    <p class="text-xs text-gray-500 mt-1">支援：25D/E (~)、G5404 (;)、在途資料 (+/,)</p>
-                </div>
-            </div>
-            <div id="fileStatus" class="mt-4 flex flex-wrap gap-2"></div>
-            <div id="errorMessage" class="mt-2 text-sm text-red-600 hidden bg-red-50 p-2 rounded border border-red-100"></div>
         </div>
 
         <!-- Tab 1: 缺貨頻次分析 -->
@@ -104,7 +150,7 @@
                             </tr>
                         </thead>
                         <tbody id="resultBodyTab1" class="text-gray-600">
-                            <tr><td colspan="11" class="px-6 py-10 text-center text-gray-400 italic">請上傳 SHORT25D 或 SHORT25E 檔案。</td></tr>
+                            <tr><td colspan="11" class="px-6 py-10 text-center text-gray-400 italic">尚未從 Supabase 取得 SHORT25D 或 SHORT25E 資料。</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -143,7 +189,7 @@
                             </tr>
                         </thead>
                         <tbody id="resultBodyTab2" class="text-gray-600">
-                            <tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 text-sm italic">請上傳包含 G5404 的檔案。</td></tr>
+                            <tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 text-sm italic">尚未從 Supabase 取得包含 G5404 的資料檔案。</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -183,7 +229,7 @@
                             </tr>
                         </thead>
                         <tbody id="resultBodyTab3" class="text-gray-600">
-                            <tr><td colspan="16" class="px-6 py-10 text-center text-gray-400 text-sm italic">請上傳 OnWayPurhGA/MA/KA 檔案。</td></tr>
+                            <tr><td colspan="16" class="px-6 py-10 text-center text-gray-400 text-sm italic">尚未從 Supabase 取得 OnWayPurhGA/MA/KA 檔案。</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -192,9 +238,60 @@
     </div>
 
     <script>
+        const SUPABASE_URL = "https://oxuvvioaenzifebmuioi.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94dXZ2aW9hZW56aWZlYm11aW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MzE1NjYsImV4cCI6MjEwMDIwNzU2Nn0.SNk6UuvAMbxo0RvzxCfOLAfnn32jyZt0hFkoP0Lk7Vw";
+        const BUCKET_NAME = "daily-files";
+
         let tab1Data = [];
         let tab2Data = [];
         let tab3Data = [];
+        let supabaseClient = null;
+
+        // Current target query date (defaults to today)
+        let selectedQueryDate = new Date();
+
+        function formatDateToYYYYMMDD(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}${m}${day}`;
+        }
+
+        function formatDateToISO(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        function initDateDisplay() {
+            const now = new Date();
+            const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+            const dateElem = document.getElementById('currentDateText');
+            if (dateElem) {
+                dateElem.textContent = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} (${weekDays[now.getDay()]})`;
+            }
+
+            const picker = document.getElementById('queryDatePicker');
+            if (picker) {
+                picker.value = formatDateToISO(selectedQueryDate);
+            }
+            updateTargetDateBadge();
+        }
+
+        function updateTargetDateBadge() {
+            const badge = document.getElementById('targetDateBadge');
+            if (badge) {
+                badge.textContent = `當前查詢日期: ${formatDateToISO(selectedQueryDate)}`;
+            }
+        }
+
+        function changeQueryDate(val) {
+            if (!val) return;
+            selectedQueryDate = new Date(val);
+            updateTargetDateBadge();
+            fetchTodayDataFromSupabase();
+        }
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -208,80 +305,163 @@
             activeBtn.classList.remove('text-gray-500');
         }
 
-        const fileInput = document.getElementById('fileInput');
-        const dropZone = document.getElementById('dropZone');
-        const fileStatus = document.getElementById('fileStatus');
-        const errorMessage = document.getElementById('errorMessage');
+        function updateStatusBadge(type, message) {
+            const badge = document.getElementById('supabaseStatusBadge');
+            const text = document.getElementById('statusText');
+            text.textContent = message;
 
-        dropZone.addEventListener('click', () => fileInput.click());
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('drag-over');
-            handleFiles(e.dataTransfer.files);
-        });
-        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
-
-        async function handleFiles(files) {
-            if (files.length === 0) return;
-            errorMessage.classList.add('hidden');
-            
-            for (const file of files) {
-                const fileName = file.name.toUpperCase();
-                let type = '';
-
-                if (fileName.includes('SHORT25D')) type = '25D';
-                else if (fileName.includes('SHORT25E')) type = '25E';
-                else if (fileName.includes('G5404')) type = 'G5404';
-                else if (fileName.includes('ONWAYPURHGA')) type = 'OW-GA';
-                else if (fileName.includes('ONWAYPURHMA')) type = 'OW-MA';
-                else if (fileName.includes('ONWAYPURHKA')) type = 'OW-KA';
-
-                if (!type) {
-                    addBadge(file.name, 'bg-gray-100 text-gray-500', '不支援');
-                    continue;
-                }
-
-                const colorClass = type.startsWith('25') ? 'bg-blue-50 text-blue-600 border-blue-200' : 
-                                  type.startsWith('OW') ? 'bg-green-50 text-green-600 border-green-200' : 
-                                  'bg-purple-50 text-purple-600 border-purple-200';
-                addBadge(file.name, colorClass, type);
-                
-                try {
-                    const text = await file.text();
-                    if (type.startsWith('25')) process25DE(text, type.slice(-1));
-                    else if (type === 'G5404') processG5404(text, fileName);
-                    else if (type.startsWith('OW')) processOnWay(text);
-                } catch (err) {
-                    showError(`檔案讀取失敗: ${file.name}`);
-                }
+            if (type === 'success') {
+                badge.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs font-semibold text-emerald-800';
+                badge.querySelector('span').className = 'w-2 h-2 rounded-full bg-emerald-500';
+            } else if (type === 'loading') {
+                badge.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-lg text-xs font-semibold text-indigo-800';
+                badge.querySelector('span').className = 'w-2 h-2 rounded-full bg-indigo-500 animate-pulse';
+            } else {
+                badge.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-xs font-semibold text-amber-800';
+                badge.querySelector('span').className = 'w-2 h-2 rounded-full bg-amber-500';
             }
-            renderTab1();
-            renderTab2();
-            renderTab3();
         }
 
-        function addBadge(name, colorClass, label) {
+        function addFileBadge(name, type) {
+            const fileStatus = document.getElementById('fileStatus');
+            const colorClass = type.startsWith('25') ? 'bg-blue-50 text-blue-600 border-blue-200' : 
+                              type.startsWith('OW') ? 'bg-green-50 text-green-600 border-green-200' : 
+                              'bg-purple-50 text-purple-600 border-purple-200';
+            
             const span = document.createElement('span');
-            span.className = `${colorClass} px-3 py-1 rounded-full text-[10px] font-medium border shadow-sm flex items-center`;
-            span.innerHTML = `<span>${name}</span> <span class="opacity-60 ml-2 font-bold">${label}</span>`;
+            span.className = `${colorClass} px-2.5 py-1 rounded-full text-[11px] font-medium border shadow-sm flex items-center gap-1.5`;
+            span.innerHTML = `<span class="font-mono">${name}</span> <span class="bg-white/70 px-1.5 py-0.2 rounded font-bold text-[10px]">${type}</span>`;
             fileStatus.appendChild(span);
         }
 
         function showError(msg) {
-            errorMessage.innerText = msg;
+            const errorMessage = document.getElementById('errorMessage');
+            document.getElementById('errorText').innerText = msg;
             errorMessage.classList.remove('hidden');
         }
 
-        function clearData(tab) {
-            if (tab === 'tab1') tab1Data = [];
-            else if (tab === 'tab2') tab2Data = [];
-            else tab3Data = [];
+        function initSupabaseClient() {
+            if (window.supabase) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                return true;
+            }
+            return false;
+        }
+
+        async function fetchTodayDataFromSupabase() {
+            const detailText = document.getElementById('syncDetailText');
+            const fileStatus = document.getElementById('fileStatus');
             fileStatus.innerHTML = '';
-            renderTab1();
-            renderTab2();
-            renderTab3();
+
+            if (!initSupabaseClient()) {
+                updateStatusBadge('warning', '初始化失敗');
+                detailText.innerHTML = `Supabase SDK 載入異常，請重新整理頁面。`;
+                return;
+            }
+
+            const ymd = formatDateToYYYYMMDD(selectedQueryDate);
+            const iso = formatDateToISO(selectedQueryDate);
+
+            updateStatusBadge('loading', '連線中...');
+            detailText.textContent = `正在從 Supabase Storage (${BUCKET_NAME}) 搜尋 ${iso} 的缺貨資料檔...`;
+
+            tab1Data = [];
+            tab2Data = [];
+            tab3Data = [];
+
+            try {
+                // Try searching in folder YYYYMMDD/ or YYYY-MM-DD/ or root
+                const folderPaths = [`${ymd}`, `${iso}`, ''];
+                let fileList = [];
+
+                for (const path of folderPaths) {
+                    const { data, error } = await supabaseClient.storage.from(BUCKET_NAME).list(path);
+                    if (!error && data && data.length > 0) {
+                        data.forEach(f => {
+                            if (!f.name.startsWith('.')) {
+                                fileList.push({ name: f.name, path: path ? `${path}/${f.name}` : f.name });
+                            }
+                        });
+                    }
+                }
+
+                // Filter files for current date or matching daily pattern
+                const targetFiles = fileList.filter(f => {
+                    const fn = f.name.toUpperCase();
+                    return (fn.includes('SHORT25') || fn.includes('G5404') || fn.includes('ONWAY')) &&
+                           (fn.includes(ymd) || fn.includes(iso) || f.path.includes(ymd) || f.path.includes(iso) || fileList.length <= 10);
+                });
+
+                if (targetFiles.length === 0) {
+                    // Try fetching from daily_reports DB table as a fallback option
+                    const { data: dbData, error: dbErr } = await supabaseClient
+                        .from('daily_reports')
+                        .select('*')
+                        .or(`report_date.eq.${iso},report_date.eq.${ymd}`);
+
+                    if (!dbErr && dbData && dbData.length > 0) {
+                        dbData.forEach(row => {
+                            parseAndProcessContent(row.file_name || row.type, row.content);
+                        });
+                        updateStatusBadge('success', '已同步');
+                        detailText.textContent = `成功從 Supabase 資料庫讀取 ${dbData.length} 筆當日報表紀錄。`;
+                        renderAllTabs();
+                        return;
+                    }
+
+                    updateStatusBadge('warning', '無當日資料');
+                    detailText.innerHTML = `在 Bucket (${BUCKET_NAME}) 未找到 ${iso} (${ymd}) 的相關檔案。<a href="#" onclick="loadMockData(); return false;" class="text-indigo-600 underline font-semibold">點此載入範例資料</a>進行測試。`;
+                    renderAllTabs();
+                    return;
+                }
+
+                // Fetch files content
+                let loadedCount = 0;
+                for (const fileObj of targetFiles) {
+                    const { data: blob, error } = await supabaseClient.storage.from(BUCKET_NAME).download(fileObj.path);
+                    if (!error && blob) {
+                        const text = await blob.text();
+                        parseAndProcessContent(fileObj.name, text);
+                        loadedCount++;
+                    }
+                }
+
+                if (loadedCount > 0) {
+                    updateStatusBadge('success', '已同步');
+                    detailText.textContent = `成功從 Supabase 擷取並解析 ${loadedCount} 個當天資料檔！`;
+                } else {
+                    updateStatusBadge('warning', '下載失敗');
+                    detailText.textContent = `發現檔案但無法讀取，請確認 Storage 存取權限。`;
+                }
+
+                renderAllTabs();
+
+            } catch (err) {
+                console.error(err);
+                updateStatusBadge('warning', '擷取失敗');
+                detailText.textContent = `連線 Supabase 發生錯誤: ${err.message || '請確認網路與連線狀態'}`;
+            }
+        }
+
+        function parseAndProcessContent(fileName, text) {
+            const upperName = fileName.toUpperCase();
+            let type = '';
+
+            if (upperName.includes('SHORT25D')) type = '25D';
+            else if (upperName.includes('SHORT25E')) type = '25E';
+            else if (upperName.includes('G5404')) type = 'G5404';
+            else if (upperName.includes('ONWAYPURHGA')) type = 'OW-GA';
+            else if (upperName.includes('ONWAYPURHMA')) type = 'OW-MA';
+            else if (upperName.includes('ONWAYPURHKA')) type = 'OW-KA';
+            else if (upperName.includes('ONWAY')) type = 'OW';
+
+            if (!type) return;
+
+            addFileBadge(fileName, type);
+
+            if (type.startsWith('25')) process25DE(text, type.slice(-1));
+            else if (type === 'G5404') processG5404(text, fileName);
+            else if (type.startsWith('OW')) processOnWay(text);
         }
 
         function formatLeadingZeros(str) {
@@ -305,6 +485,7 @@
         function processG5404(content, fileName) {
             const lines = content.split(/\r?\n/).filter(line => line.trim() !== "");
             let warehouseFromFilename = fileName.substring(0, 2).toUpperCase();
+            if (!["MA", "GA", "KA"].includes(warehouseFromFilename)) warehouseFromFilename = "MA";
             
             for (let i = 1; i < lines.length; i++) {
                 const cols = lines[i].split(';').map(c => c.trim());
@@ -341,7 +522,7 @@
                     materialId: cols[3],
                     unit: cols[4], 
                     warehouse: cols[5], 
-                    vendorId: cols[6], // 訂購廠商
+                    vendorId: cols[6], 
                     reqDate: cols[7],
                     promiseDate: cols[8], 
                     reqQty: formatLeadingZeros(cols[9]), 
@@ -377,14 +558,19 @@
 
         function getMainDate() {
             if (tab1Data.length > 0) return tab1Data[0].date.replace(/\//g, '');
-            const d = new Date();
-            return d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+            return formatDateToYYYYMMDD(selectedQueryDate);
+        }
+
+        function renderAllTabs() {
+            renderTab1();
+            renderTab2();
+            renderTab3();
         }
 
         function renderTab1() {
             const tbody = document.getElementById('resultBodyTab1');
             if (tab1Data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="11" class="px-6 py-10 text-center text-gray-400 italic">請上傳 SHORT25D 或 SHORT25E 檔案。</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="11" class="px-6 py-10 text-center text-gray-400 italic">無 SHORT25D 或 SHORT25E 資料。</td></tr>`;
                 return;
             }
             
@@ -418,9 +604,9 @@
                 
                 let remark = '-';
                 if (isRepeatedAcrossSet) {
-                    remark = '<span class="text-red-600 bg-red-50 px-1 rounded">多庫別</span>';
+                    remark = '<span class="text-red-600 bg-red-50 px-1.5 py-0.5 rounded font-semibold">多庫別</span>';
                 } else if (["MA", "GA", "KA"].includes(row.warehouse) && (spec === '-' || !spec)) {
-                    remark = '<span class="text-orange-600 bg-orange-50 px-1 rounded">可能沒存管或為0</span>';
+                    remark = '<span class="text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded font-semibold">可能沒存管或為0</span>';
                 }
                 
                 const onWay = findOnWayInfo(row.materialId, row.warehouse);
@@ -431,7 +617,7 @@
                     <td class="px-4 py-3 font-mono font-semibold">${row.materialId}</td>
                     <td class="px-4 py-3 text-gray-600 truncate max-w-[200px]">${spec}</td>
                     <td class="px-4 py-3 text-gray-500">${row.unit || '-'}</td>
-                    <td class="px-4 py-3 text-center font-bold">${row.count}</td>
+                    <td class="px-4 py-3 text-center font-bold text-indigo-600">${row.count}</td>
                     <td class="px-4 py-3 text-center">
                         ${Array.from(row.sources).map(s => `<span class="${s==='D'?'bg-red-500':'bg-blue-500'} text-white px-1.5 py-0.5 rounded text-[10px] mr-1">25${s}</span>`).join('')}
                     </td>
@@ -447,7 +633,7 @@
         function renderTab2() {
             const tbody = document.getElementById('resultBodyTab2');
             if (tab2Data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 italic text-sm">請上傳 G5404 檔案。</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 italic text-sm">無 G5404 安全庫存資料。</td></tr>`;
                 return;
             }
             tbody.innerHTML = tab2Data.map(row => {
@@ -455,17 +641,17 @@
                 return `
                 <tr class="hover:bg-indigo-50 border-b border-gray-100 transition whitespace-nowrap">
                     <td class="px-3 py-2 font-bold text-blue-800">${row.warehouse}</td>
-                    <td class="px-3 py-2 font-mono">${row.materialId}</td>
+                    <td class="px-3 py-2 font-mono font-semibold">${row.materialId}</td>
                     <td class="px-3 py-2">${row.unit}</td>
                     <td class="px-3 py-2 truncate max-w-[150px]">${row.spec}</td>
                     <td class="px-3 py-2 text-center">${row.delivery}</td>
                     <td class="px-3 py-2 text-right">${row.monthlyQty}</td>
                     <td class="px-3 py-2 text-right text-red-600 font-bold">${row.stockQty}</td>
                     <td class="px-3 py-2 text-center text-blue-600">${row.endDate}</td>
-                    <td class="px-3 py-2">${row.reqNo}</td>
+                    <td class="px-3 py-2 font-mono">${row.reqNo}</td>
                     <td class="px-3 py-2 text-center">${row.reqDate}</td>
                     <td class="px-3 py-2 text-center">${row.needDate}</td>
-                    <td class="px-3 py-2 text-right text-green-600">${row.onWayQty}</td>
+                    <td class="px-3 py-2 text-right text-green-600 font-semibold">${row.onWayQty}</td>
                     <td class="px-3 py-2 text-center">${row.leadTime}</td>
                     <td class="px-3 py-2 font-mono">${row.vendorId}</td>
                     <td class="px-3 py-2 font-semibold text-indigo-700">${vendorShort}</td>
@@ -477,20 +663,20 @@
         function renderTab3() {
             const tbody = document.getElementById('resultBodyTab3');
             if (tab3Data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="16" class="px-6 py-10 text-center text-gray-400 text-sm italic">請上傳 OnWayPurh 檔案。</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="16" class="px-6 py-10 text-center text-gray-400 text-sm italic">無 OnWayPurh 在途資料。</td></tr>`;
                 return;
             }
             tbody.innerHTML = tab3Data.map(row => `
                 <tr class="hover:bg-green-50 border-b border-gray-100 transition whitespace-nowrap">
-                    <td class="px-3 py-2 font-bold">${row.reqNo}</td>
+                    <td class="px-3 py-2 font-bold font-mono">${row.reqNo}</td>
                     <td class="px-3 py-2">${row.batch}</td>
                     <td class="px-3 py-2">${row.item}</td>
-                    <td class="px-3 py-2 font-mono">${row.materialId}</td>
+                    <td class="px-3 py-2 font-mono font-semibold">${row.materialId}</td>
                     <td class="px-3 py-2">${row.unit}</td>
-                    <td class="px-3 py-2">${row.warehouse}</td>
+                    <td class="px-3 py-2 font-semibold text-blue-700">${row.warehouse}</td>
                     <td class="px-3 py-2 truncate max-w-[120px]" title="${row.vendorId}">${row.vendorId}</td>
                     <td class="px-3 py-2 text-center">${row.reqDate}</td>
-                    <td class="px-3 py-2 text-center text-blue-600">${row.promiseDate}</td>
+                    <td class="px-3 py-2 text-center text-blue-600 font-semibold">${row.promiseDate}</td>
                     <td class="px-3 py-2 text-right font-medium">${row.reqQty}</td>
                     <td class="px-3 py-2 text-right font-bold text-green-700">${row.ordQty}</td>
                     <td class="px-3 py-2 text-right">${row.delivQty}</td>
@@ -500,6 +686,13 @@
                     <td class="px-3 py-2">${row.dept}</td>
                 </tr>
             `).join('');
+        }
+
+        function clearData(tab) {
+            if (tab === 'tab1') tab1Data = [];
+            else if (tab === 'tab2') tab2Data = [];
+            else tab3Data = [];
+            renderAllTabs();
         }
 
         function exportCSV(tab) {
@@ -535,6 +728,44 @@
             link.download = fileName;
             link.click();
         }
+
+        // Demo fallback function if Supabase bucket doesn't have current day data yet
+        function loadMockData() {
+            const ymd = formatDateToYYYYMMDD(selectedQueryDate);
+            const iso = formatDateToISO(selectedQueryDate);
+
+            tab1Data = [
+                { date: iso, warehouse: 'MA', materialId: 'M1001-A', unit: 'EA', source: 'D' },
+                { date: iso, warehouse: 'MA', materialId: 'M1001-A', unit: 'EA', source: 'E' },
+                { date: iso, warehouse: 'GA', materialId: 'M1002-B', unit: 'BOX', source: 'D' },
+                { date: iso, warehouse: 'KA', materialId: 'M1001-A', unit: 'EA', source: 'E' }
+            ];
+
+            tab2Data = [
+                { warehouse: 'MA', materialId: 'M1001-A', unit: 'EA', spec: '高壓鋼製閥門 1/2吋', delivery: 'Y', monthlyQty: '120', stockQty: '5', endDate: iso, reqNo: 'PO202607001', reqDate: iso, needDate: iso, onWayQty: '50', leadTime: '7', vendorId: 'V8001' },
+                { warehouse: 'GA', materialId: 'M1002-B', unit: 'BOX', spec: '精密工業軸承 #6204', delivery: 'N', monthlyQty: '300', stockQty: '12', endDate: iso, reqNo: 'PO202607002', reqDate: iso, needDate: iso, onWayQty: '100', leadTime: '5', vendorId: 'V8002' }
+            ];
+
+            tab3Data = [
+                { reqNo: 'PO202607001', batch: '01', item: '1', materialId: 'M1001-A', unit: 'EA', warehouse: 'MA', vendorId: 'V8001', reqDate: iso, promiseDate: iso, reqQty: '50', ordQty: '50', delivQty: '0', phone: '02-23456789', fax: '02-23456780', vendorShort: '台灣精密工業', dept: '資材部' },
+                { reqNo: 'PO202607002', batch: '01', item: '1', materialId: 'M1002-B', unit: 'BOX', warehouse: 'GA', vendorId: 'V8002', reqDate: iso, promiseDate: iso, reqQty: '100', ordQty: '100', delivQty: '0', phone: '03-98765432', fax: '03-98765431', vendorShort: '聯發機械配件', dept: '資材部' }
+            ];
+
+            document.getElementById('fileStatus').innerHTML = '';
+            addFileBadge(`SHORT25D_${ymd}.txt`, '25D');
+            addFileBadge(`MA_G5404_${ymd}.txt`, 'G5404');
+            addFileBadge(`ONWAYPURHGA_${ymd}.txt`, 'OW-GA');
+
+            updateStatusBadge('success', '示範模式');
+            document.getElementById('syncDetailText').textContent = `已成功載入 ${iso} 的展示範例資料！可直接切換頁籤與測試匯出。`;
+            renderAllTabs();
+        }
+
+        window.onload = function () {
+            initDateDisplay();
+            // Automatically attempt fetching from Supabase on load
+            fetchTodayDataFromSupabase();
+        };
     </script>
 </body>
 </html>
