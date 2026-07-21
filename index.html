@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>每日缺貨資料彙總 - Supabase 自動擷取</title>
+    <title>每日缺貨資料彙總</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
@@ -48,7 +48,7 @@
                 <span class="text-3xl">📦</span>
                 <div>
                     <h1 class="text-2xl md:text-3xl font-bold text-gray-800">每日缺貨資料彙總</h1>
-                    <p class="text-xs text-gray-500">自動從 Supabase 擷取當日缺貨與在途報表</p>
+                    <p class="text-xs text-gray-500">自動擷取當日缺貨與在途報表</p>
                 </div>
             </div>
 
@@ -78,7 +78,7 @@
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h3 class="font-bold text-gray-800 text-sm">Supabase 資料自動擷取狀態</h3>
+                        <h3 class="font-bold text-gray-800 text-sm">資料自動擷取狀態</h3>
                         <span id="targetDateBadge" class="bg-indigo-100 text-indigo-800 text-[11px] px-2 py-0.5 rounded font-mono font-medium">當前查詢日期: --</span>
                     </div>
                     <p id="syncDetailText" class="text-xs text-gray-500 mt-0.5">自動連接 Supabase (daily-files) 讀取當天缺貨資料檔。</p>
@@ -416,7 +416,7 @@
                             parseAndProcessContent(row.file_name || row.type, row.content);
                         });
                         updateStatusBadge('success', '已同步');
-                        detailText.textContent = `成功從 Supabase 資料庫讀取 ${dbData.length} 筆當日報表紀錄。`;
+                        detailText.textContent = `成功從 資料庫讀取 ${dbData.length} 筆當日報表紀錄。`;
                         renderAllTabs();
                         return;
                     }
