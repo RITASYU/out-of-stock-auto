@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>每日缺貨資料彙總 - Supabase 自動擷取</title>
+    <title>每日缺貨資料彙總</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
@@ -41,6 +41,10 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen p-4 md:p-8">
+
+    <!-- ========================================================= -->
+    <!-- 📍 1. 登入畫面 HTML 結構區塊 (預設全螢幕覆蓋)             -->
+    <!-- ========================================================= -->
     <!-- Fullscreen Login Screen Overlay -->
     <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-4">
         <div class="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 shadow-2xl text-white">
@@ -88,6 +92,9 @@
             </form>
         </div>
     </div>
+    <!-- ========================================================= -->
+    <!-- 📍 登入畫面 HTML 結構結束                                  -->
+    <!-- ========================================================= -->
 
     <!-- Main Dashboard Container (Hidden until logged in) -->
     <div id="mainDashboard" class="max-w-[1600px] mx-auto hidden">
@@ -97,7 +104,7 @@
                 <span class="text-3xl">📦</span>
                 <div>
                     <h1 class="text-2xl md:text-3xl font-bold text-gray-800">每日缺貨資料彙總</h1>
-                    <p class="text-xs text-gray-500">自動從 Supabase 擷取當日缺貨與在途報表</p>
+                    <p class="text-xs text-gray-500">自動擷取當日缺貨與在途報表</p>
                 </div>
             </div>
 
@@ -138,10 +145,10 @@
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h3 class="font-bold text-gray-800 text-sm">Supabase 資料自動擷取狀態</h3>
+                        <h3 class="font-bold text-gray-800 text-sm">資料自動擷取狀態</h3>
                         <span id="targetDateBadge" class="bg-indigo-100 text-indigo-800 text-[11px] px-2 py-0.5 rounded font-mono font-medium">當前查詢日期: --</span>
                     </div>
-                    <p id="syncDetailText" class="text-xs text-gray-500 mt-0.5">自動連接 Supabase (daily-files) 讀取當天缺貨資料檔。</p>
+                    <p id="syncDetailText" class="text-xs text-gray-500 mt-0.5">自動連接 (daily-files) 讀取當天缺貨資料檔。</p>
                 </div>
             </div>
 
@@ -222,7 +229,7 @@
                             </tr>
                         </thead>
                         <tbody id="resultBodyTab1" class="text-gray-600">
-                            <tr><td colspan="11" class="px-6 py-10 text-center text-gray-400 italic">尚未從 Supabase 取得 SHORT25D 或 SHORT25E 資料。</td></tr>
+                            <tr><td colspan="11" class="px-6 py-10 text-center text-gray-400 italic">尚未取得 SHORT25D 或 SHORT25E 資料。</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -261,7 +268,7 @@
                             </tr>
                         </thead>
                         <tbody id="resultBodyTab2" class="text-gray-600">
-                            <tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 text-sm italic">尚未從 Supabase 取得包含 G5404 的資料檔案。</td></tr>
+                            <tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 text-sm italic">尚未取得包含 G5404 的資料檔案。</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -301,7 +308,7 @@
                             </tr>
                         </thead>
                         <tbody id="resultBodyTab3" class="text-gray-600">
-                            <tr><td colspan="16" class="px-6 py-10 text-center text-gray-400 text-sm italic">尚未從 Supabase 取得 OnWayPurhGA/MA/KA 檔案。</td></tr>
+                            <tr><td colspan="16" class="px-6 py-10 text-center text-gray-400 text-sm italic">尚未取得 OnWayPurhGA/MA/KA 檔案。</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -435,7 +442,7 @@
             const iso = formatDateToISO(selectedQueryDate);
 
             updateStatusBadge('loading', '連線中...');
-            detailText.textContent = `正在從 Supabase Storage (${BUCKET_NAME}) 搜尋 ${iso} 的缺貨資料檔...`;
+            detailText.textContent = `正在 Storage (${BUCKET_NAME}) 搜尋 ${iso} 的缺貨資料檔...`;
 
             tab1Data = [];
             tab2Data = [];
@@ -500,7 +507,7 @@
 
                 if (loadedCount > 0) {
                     updateStatusBadge('success', '已同步');
-                    detailText.textContent = `成功從 Supabase 擷取並解析 ${loadedCount} 個當天資料檔！`;
+                    detailText.textContent = `成功擷取並解析 ${loadedCount} 個當天資料檔！`;
                 } else {
                     updateStatusBadge('warning', '下載失敗');
                     detailText.textContent = `發現檔案但無法讀取，請確認 Storage 存取權限。`;
@@ -936,8 +943,60 @@
             renderAllTabs();
         }
 
+        /***********************************************************
+         * 📍 2. 登入/登出控制與 Session 檢查 logic 函數區塊 (JS)
+         ***********************************************************/
+        // 切換密碼明文/密碼檔顯示
+        function togglePasswordVisibility() {
+            const pwdInput = document.getElementById('loginPassword');
+            pwdInput.type = pwdInput.type === 'password' ? 'text' : 'password';
+        }
+
+        // 處理登入驗證 (帳號: stock / 密碼: stock)
+        function handleLogin(event) {
+            if (event) event.preventDefault();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const errorBox = document.getElementById('loginError');
+
+            if (!username || !password) {
+                document.getElementById('loginErrorMsg').textContent = '請輸入帳號及密碼！';
+                errorBox.classList.remove('hidden');
+                return;
+            }
+
+            // 帳號密碼比對邏輯 (stock / stock)
+            if (username === 'stock' && password === 'stock') {
+                errorBox.classList.add('hidden');
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainDashboard').classList.remove('hidden');
+                document.getElementById('currentUserName').textContent = username;
+
+                // 儲存登入狀態至 sessionStorage
+                sessionStorage.setItem('isLoggedIn', 'true');
+                sessionStorage.setItem('loggedInUser', username);
+
+                // 初始化頁面資料
+                initDateDisplay();
+                fetchTodayDataFromSupabase();
+            } else {
+                document.getElementById('loginErrorMsg').textContent = '帳號或密碼錯誤，請再試一次！';
+                errorBox.classList.remove('hidden');
+            }
+        }
+
+        // 處理登出
+        function handleLogout() {
+            sessionStorage.removeItem('isLoggedIn');
+            sessionStorage.removeItem('loggedInUser');
+            document.getElementById('mainDashboard').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('loginError').classList.add('hidden');
+        }
+
+        // 頁面載入時檢查登入 Session 狀態
         window.onload = function () {
-            // Check session login state
             const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
             const savedUser = sessionStorage.getItem('loggedInUser') || 'stock';
 
@@ -952,6 +1011,9 @@
                 document.getElementById('mainDashboard').classList.add('hidden');
             }
         };
+        /***********************************************************
+         * 📍 登入/登出控制邏輯結束
+         ***********************************************************/
     </script>
 </body>
 </html>
