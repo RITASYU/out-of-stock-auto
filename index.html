@@ -440,7 +440,7 @@
 
                 if (loadedCount > 0) {
                     updateStatusBadge('success', '已同步');
-                    detailText.textContent = `成功從 Supabase 擷取並解析 ${loadedCount} 個當天資料檔！`;
+                    detailText.textContent = `成功擷取並解析 ${loadedCount} 個當天資料檔！`;
                 } else {
                     updateStatusBadge('warning', '下載失敗');
                     detailText.textContent = `發現檔案但無法讀取，請確認 Storage 存取權限。`;
