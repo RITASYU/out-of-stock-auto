@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>每日缺貨資料彙總</title>
+    <title>每日缺貨資料彙總系統</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS Client CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -41,7 +43,91 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen p-4 md:p-8">
-    <div class="max-w-[1600px] mx-auto">
+
+    <!-- ========================================================= -->
+    <!-- 📍 1. 登入畫面 HTML 結構區塊 (預設全螢幕覆蓋)             -->
+    <!-- ========================================================= -->
+    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-4 transition-all duration-300">
+        <div class="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 shadow-2xl text-white relative">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600/30 border border-indigo-400/30 text-3xl mb-3 shadow-inner">📦</div>
+                <h2 id="loginTitle" class="text-2xl font-bold tracking-tight text-white">每日缺貨資料螢幕登入</h2>
+                <p id="loginSubtitle" class="text-xs text-slate-300 mt-1">請輸入帳號密碼以存取報表系統</p>
+            </div>
+
+            <!-- Error Alert -->
+            <div id="loginError" class="hidden mb-4 p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs flex items-center gap-2">
+                <svg class="w-4 h-4 shrink-0 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span id="loginErrorMsg">帳號或密碼錯誤</span>
+            </div>
+
+            <!-- Step 1: System Authentication -->
+            <form id="step1Form" onsubmit="handleStep1(event)" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">帳號 (Username)</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 pointer-events-none">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        </span>
+                        <!-- 添加了 onkeydown 事件監聽 -->
+                        <input type="text" id="loginUsername" required placeholder="請輸入帳號" onkeydown="if(event.key==='Enter'){event.preventDefault(); document.getElementById('loginPassword').focus();}" class="w-full pl-10 pr-4 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">密碼 (Password)</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 pointer-events-none">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        </span>
+                        <input type="password" id="loginPassword" required placeholder="請輸入密碼" class="w-full pl-10 pr-10 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white">
+                            <svg id="eyeIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" id="step1Btn" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+                    下一步：選擇人員身份
+                </button>
+            </form>
+
+            <!-- Step 2: Department and Name Selection -->
+            <form id="step2Form" onsubmit="handleStep2(event)" class="space-y-5 hidden">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">服務單位 / 部門</label>
+                    <select id="userDepartment" onchange="onDepartmentChange()" required class="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition cursor-pointer">
+                        <option value="">-- 載入部門名單中... --</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">使用人員姓名</label>
+                    <div class="relative">
+                        <select id="userFullName" required class="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition cursor-pointer">
+                            <option value="">-- 請先選擇單位 --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="button" onclick="goToStep1()" class="w-1/3 py-3 px-4 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-sm rounded-xl transition">
+                        上一步
+                    </button>
+                    <button type="submit" id="step2Btn" class="w-2/3 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        確認登入系統
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- Main Dashboard Container (Hidden until logged in) -->
+    <!-- ========================================================= -->
+    <div id="mainDashboard" class="max-w-[1600px] mx-auto hidden">
         <!-- Header -->
         <div class="relative mb-6 flex flex-col md:flex-row items-center justify-between pb-2 border-b border-gray-200">
             <div class="flex items-center gap-3 mb-2 md:mb-0">
@@ -65,6 +151,17 @@
                     </svg>
                     <span id="currentDateText">--</span>
                 </span>
+
+                <!-- User Info & Logout Button -->
+                <div class="flex items-center gap-2 pl-2 border-l border-gray-200">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-lg text-xs font-bold">
+                        👤 <span id="currentUserName">stock</span>
+                    </span>
+                    <button onclick="handleLogout()" title="登出系統" class="px-2.5 py-1.5 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-200 hover:border-red-200 rounded-lg text-xs font-semibold transition flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        登出
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -81,7 +178,7 @@
                         <h3 class="font-bold text-gray-800 text-sm">資料自動擷取狀態</h3>
                         <span id="targetDateBadge" class="bg-indigo-100 text-indigo-800 text-[11px] px-2 py-0.5 rounded font-mono font-medium">當前查詢日期: --</span>
                     </div>
-                    <p id="syncDetailText" class="text-xs text-gray-500 mt-0.5">自動連接 Supabase (daily-files) 讀取當天缺貨資料檔。</p>
+                    <p id="syncDetailText" class="text-xs text-gray-500 mt-0.5">自動連接 (daily-files) 讀取當天缺貨資料檔。</p>
                 </div>
             </div>
 
@@ -148,21 +245,23 @@
                     <table class="w-full text-left border-collapse sticky-header text-xs">
                         <thead>
                             <tr class="bg-gray-100 text-gray-700 uppercase font-bold">
+                                <th class="px-4 py-3 border-b text-center min-w-[100px]">處理進度</th>
                                 <th class="px-4 py-3 border-b">補充日期</th>
                                 <th class="px-4 py-3 border-b">供應庫</th>
                                 <th class="px-4 py-3 border-b">材料編號</th>
                                 <th class="px-4 py-3 border-b">品名規格</th>
                                 <th class="px-4 py-3 border-b">單位</th>
-                                <th class="px-4 py-3 border-b text-center">缺貨次數</th>
+                                <th class="px-4 py-3 border-b text-center">缺貨筆數</th>
                                 <th class="px-4 py-3 border-b text-center">補充類別</th>
                                 <th class="px-4 py-3 border-b text-center">備註</th>
+                                <th class="px-4 py-3 border-b text-indigo-700">訂購別</th>
                                 <th class="px-4 py-3 border-b text-indigo-700">請購案號</th>
                                 <th class="px-4 py-3 border-b text-indigo-700">廠商簡稱</th>
                                 <th class="px-4 py-3 border-b text-indigo-700">電話</th>
                             </tr>
                         </thead>
                         <tbody id="resultBodyTab1" class="text-gray-600">
-                            <tr><td colspan="11" class="px-6 py-10 text-center text-gray-400 italic">尚未從 Supabase 取得 SHORT25D 或 SHORT25E 資料。</td></tr>
+                            <tr><td colspan="13" class="px-6 py-10 text-center text-gray-400 italic">尚未取得 SHORT25D 或 SHORT25E 資料。</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -172,9 +271,18 @@
         <!-- Tab 2: 在庫低於安全庫存分析 (G5404) -->
         <div id="tab2" class="tab-content">
             <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
-                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <h2 class="text-lg font-bold text-gray-800">在庫低於安全庫存分析 (G5404 合併)</h2>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2 py-1.5 text-xs shadow-sm">
+                            <span class="text-gray-600 font-semibold">用完日:</span>
+                            <select id="endDateFilterSelect" onchange="renderTab2()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
+                                <option value="ALL">全部</option>
+                                <option value="7D">一週內</option>
+                                <option value="14D">兩週內</option>
+                                <option value="30D">一個月內</option>
+                            </select>
+                        </div>
                         <button onclick="clearData('tab2')" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300 font-medium">清空</button>
                         <button onclick="exportCSV('tab2')" class="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 font-medium shadow-sm">匯出</button>
                     </div>
@@ -201,7 +309,7 @@
                             </tr>
                         </thead>
                         <tbody id="resultBodyTab2" class="text-gray-600">
-                            <tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 text-sm italic">尚未從 Supabase 取得包含 G5404 的資料檔案。</td></tr>
+                            <tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 text-sm italic">尚未取得包含 G5404 的資料檔案。</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -211,9 +319,21 @@
         <!-- Tab 3: 在途資料 -->
         <div id="tab3" class="tab-content">
             <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
-                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                    <h2 class="text-lg font-bold text-gray-800">在途資料彙整 (OnWayPurh)</h2>
-                    <div class="flex gap-2">
+                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <h2 class="text-lg font-bold text-gray-800">在途資料彙總 (OnWayPurh)</h2>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
+                            <span class="text-gray-600 font-semibold">批號:</span>
+                            <select id="batchFilterSelect" onchange="renderTab3()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
+                                <option value="ALL">全部批號</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
+                            <span class="text-gray-600 font-semibold">訂購別:</span>
+                            <select id="orderDeptFilterSelect" onchange="renderTab3()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
+                                <option value="ALL">全部訂購別</option>
+                            </select>
+                        </div>
                         <button onclick="clearData('tab3')" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300 font-medium">清空</button>
                         <button onclick="exportCSV('tab3')" class="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 font-medium shadow-sm">匯出</button>
                     </div>
@@ -225,10 +345,11 @@
                                 <th class="px-3 py-3 border-b">請購案號</th>
                                 <th class="px-3 py-3 border-b">批號</th>
                                 <th class="px-3 py-3 border-b">項次</th>
+                                <th class="px-3 py-3 border-b text-indigo-700">訂購別</th>
                                 <th class="px-3 py-3 border-b">材料編號</th>
                                 <th class="px-3 py-3 border-b">單位</th>
                                 <th class="px-3 py-3 border-b">庫別</th>
-                                <th class="px-3 py-3 border-b">訂購廠商</th>
+                                <th class="px-3 py-3 border-b text-indigo-700">廠商簡稱</th>
                                 <th class="px-3 py-3 border-b">請購日期</th>
                                 <th class="px-3 py-3 border-b">約交日期</th>
                                 <th class="px-3 py-3 text-right border-b">請購數量</th>
@@ -236,12 +357,12 @@
                                 <th class="px-3 py-3 text-right border-b">累交數量</th>
                                 <th class="px-3 py-3 border-b">電話</th>
                                 <th class="px-3 py-3 border-b">傳真</th>
-                                <th class="px-3 py-3 border-b text-indigo-700">廠商簡稱</th>
+                                <th class="px-3 py-3 border-b">訂購廠商</th>
                                 <th class="px-3 py-3 border-b">請購部門</th>
                             </tr>
                         </thead>
                         <tbody id="resultBodyTab3" class="text-gray-600">
-                            <tr><td colspan="16" class="px-6 py-10 text-center text-gray-400 text-sm italic">尚未從 Supabase 取得 OnWayPurhGA/MA/KA 檔案。</td></tr>
+                            <tr><td colspan="17" class="px-6 py-10 text-center text-gray-400 text-sm italic">尚未取得 OnWayPurhGA/MA/KA 檔案。</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -249,17 +370,458 @@
         </div>
     </div>
 
+    <!-- ========================================================= -->
+    <!-- 📍 處理進度自訂輸入提示框 (Modal)                        -->
+    <!-- ========================================================= -->
+    <div id="progressModal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md overflow-hidden transform transition-all">
+            <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4 text-white flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">📝</span>
+                    <h3 class="font-bold text-base">更新缺貨處理進度</h3>
+                </div>
+                <button onclick="closeProgressModal()" class="text-indigo-200 hover:text-white font-bold text-xl leading-none">&times;</button>
+            </div>
+            
+            <form id="progressForm" onsubmit="handleSaveProgress(event)" class="p-6 space-y-4">
+                <input type="hidden" id="modalWarehouse">
+                <input type="hidden" id="modalMaterialId">
+                <input type="hidden" id="modalReportDate">
+
+                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 text-xs text-gray-600 space-y-1">
+                    <div class="flex justify-between">
+                        <span>供應庫：<strong id="modalWarehouseDisplay" class="text-gray-800">--</strong></span>
+                        <span>日期：<strong id="modalDateDisplay" class="text-gray-800">--</strong></span>
+                    </div>
+                    <div>材料編號：<strong id="modalMaterialDisplay" class="text-indigo-600 font-mono">--</strong></div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">處理狀態 <span class="text-red-500">*</span></label>
+                    <select id="modalStatus" class="w-full text-xs border border-gray-300 rounded-lg p-2.5 bg-white text-gray-800 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="未處理">未處理</option>
+                        <option value="已到貨入庫">已到貨入庫</option>
+                        <option value="已洽供應商">已洽供應商</option>
+                        <option value="尚未訂購">尚未訂購</option>
+                        <option value="配合交貨">配合交貨</option>
+                        <option value="無存管">無存管</option>
+                        <option value="02附圖">02附圖</option>
+                        <option value="03調撥">03調撥</option>
+                        <option value="其他(詳說明)">其他(詳說明)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">進率/處理說明</label>
+                    <textarea id="modalNotes" rows="3" placeholder="例如：廠商回覆預計7/25交貨，已發單催促..." class="w-full text-xs border border-gray-300 rounded-lg p-2.5 text-gray-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">經辦人員</label>
+                    <input type="text" id="modalUpdatedBy" disabled class="w-full text-xs border border-gray-200 rounded-lg p-2 text-gray-500 bg-gray-100 cursor-not-allowed focus:outline-none font-medium">
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2">
+                    <button type="button" onclick="closeProgressModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition">取消</button>
+                    <button type="submit" id="saveProgressBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow transition flex items-center gap-1.5">
+                        <span>💾</span> 儲存最新紀錄
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div> 
+
+    <!-- ========================================================= -->
+    <!-- 📍 當天無資料提示彈跳窗 (Modal)                           -->
+    <!-- ========================================================= -->
+    <div id="noDataModal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md overflow-hidden transform transition-all p-6 text-center">
+            <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4 text-2xl">
+                ⚠️
+            </div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2">系統提示</h3>
+            <p class="text-sm text-gray-600 mb-6 font-medium">今日資料尚未上傳，請聯絡存管員處理</p>
+            <div class="flex items-center justify-center gap-3">
+                <button onclick="closeNoDataModal()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition">
+                    確定
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 📍 JavaScript 業務邏輯與資料流處理區塊                    -->
+    <!-- ========================================================= -->
     <script>
         const SUPABASE_URL = "https://oxuvvioaenzifebmuioi.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94dXZ2aW9hZW56aWZlYm11aW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MzE1NjYsImV4cCI6MjEwMDIwNzU2Nn0.SNk6UuvAMbxo0RvzxCfOLAfnn32jyZt0hFkoP0Lk7Vw";
         const BUCKET_NAME = "daily-files";
+        const BASE_CSV_URL = "https://oxuvvioaenzifebmuioi.supabase.co/storage/v1/object/public/daily-files/base.csv";
 
         let tab1Data = [];
         let tab2Data = [];
         let tab3Data = [];
         let supabaseClient = null;
+        let baseCsvMap = new Map();
+        let allowedUsersList = [];
 
-        // Current target query date (defaults to today)
+        async function fetchAllowedUsers() {
+            if (!initSupabaseClient()) return;
+            try {
+                const { data, error } = await supabaseClient
+                    .from('allowed_users')
+                    .select('*');
+
+                if (error) {
+                    console.warn('擷取 allowed_users 失敗，使用預設單位選單:', error);
+                    useDefaultUserOptions();
+                    return;
+                }
+
+                if (data && data.length > 0) {
+                    allowedUsersList = data.map(row => ({
+                        dept: row.department || row.dept || row.service_unit || row.unit || '其他單位',
+                        name: row.name || row.full_name || row.user_name || row.username || '未知名稱'
+                    }));
+                    populateDepartmentDropdown();
+                } else {
+                    useDefaultUserOptions();
+                }
+            } catch (err) {
+                console.warn('存取 allowed_users 異常:', err);
+                useDefaultUserOptions();
+            }
+        }
+
+        function populateDepartmentDropdown() {
+            const deptSelect = document.getElementById('userDepartment');
+            if (!deptSelect) return;
+
+            const depts = Array.from(new Set(allowedUsersList.map(u => u.dept))).filter(Boolean);
+            
+            if (depts.length === 0) {
+                useDefaultUserOptions();
+                return;
+            }
+
+            let html = '<option value="">-- 請選擇單位 --</option>';
+            depts.sort().forEach(dept => {
+                html += `<option value="${dept}">${dept}</option>`;
+            });
+            deptSelect.innerHTML = html;
+            
+            onDepartmentChange();
+        }
+
+        function onDepartmentChange() {
+            const selectedDept = document.getElementById('userDepartment').value;
+            const nameSelect = document.getElementById('userFullName');
+            if (!nameSelect) return;
+
+            if (!selectedDept) {
+                nameSelect.innerHTML = '<option value="">-- 請先選擇單位 --</option>';
+                return;
+            }
+
+            const filteredUsers = allowedUsersList.filter(u => u.dept === selectedDept);
+            if (filteredUsers.length === 0) {
+                nameSelect.innerHTML = '<option value="">-- 無相符人員 --</option>';
+                return;
+            }
+
+            let html = '<option value="">-- 請選擇姓名 --</option>';
+            filteredUsers.forEach(u => {
+                html += `<option value="${u.name}">${u.name}</option>`;
+            });
+            nameSelect.innerHTML = html;
+        }
+
+        function useDefaultUserOptions() {
+            const deptSelect = document.getElementById('userDepartment');
+            const nameSelect = document.getElementById('userFullName');
+            
+            const defaultDepts = ["資材部", "資材-倉儲科", "資材-採購科", "製造一部", "製造二部", "研發部", "品保部", "生管部", "其他單位"];
+            if (deptSelect) {
+                let html = '<option value="">-- 請選擇單位 --</option>';
+                defaultDepts.forEach(d => { html += `<option value="${d}">${d}</option>`; });
+                deptSelect.innerHTML = html;
+            }
+
+            if (nameSelect) {
+                nameSelect.innerHTML = '<option value="">-- 請選擇或手動輸入姓名 --</option>';
+            }
+        }
+
+        async function loadBaseCsv() {
+            try {
+                const response = await fetch(BASE_CSV_URL);
+                if (response.ok) {
+                    const text = await response.text();
+                    parseBaseCsv(text);
+                }
+            } catch (err) {
+                console.warn("無法載入 base.csv:", err);
+            }
+        }
+
+        function splitCsvLine(line) {
+            const result = [];
+            let cur = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const c = line[i];
+                if (c === '"') {
+                    inQuotes = !inQuotes;
+                } else if (c === ',' && !inQuotes) {
+                    result.push(cur.trim().replace(/^"|"$/g, ''));
+                    cur = '';
+                } else {
+                    cur += c;
+                }
+            }
+            result.push(cur.trim().replace(/^"|"$/g, ''));
+            return result;
+        }
+
+        function parseBaseCsv(text) {
+            baseCsvMap.clear();
+            const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
+            if (lines.length < 2) return;
+
+            const headers = splitCsvLine(lines[0]);
+            let whIdx = -1, matIdx = -1, deptIdx = -1;
+
+            headers.forEach((h, idx) => {
+                const hUpper = h.toUpperCase();
+                if (hUpper.includes("庫") || hUpper.includes("WAREHOUSE") || hUpper.includes("WH")) {
+                    if (whIdx === -1) whIdx = idx;
+                }
+                if (hUpper.includes("材料") || hUpper.includes("料號") || hUpper.includes("MATERIAL")) {
+                    if (matIdx === -1) matIdx = idx;
+                }
+                if (hUpper.includes("訂購") || hUpper.includes("部門") || hUpper.includes("DEPT")) {
+                    if (deptIdx === -1) deptIdx = idx;
+                }
+            });
+
+            if (whIdx === -1) whIdx = 0;
+            if (matIdx === -1) matIdx = 1;
+            if (deptIdx === -1 || deptIdx < 12) deptIdx = 12;
+
+            for (let i = 1; i < lines.length; i++) {
+                const cols = splitCsvLine(lines[i]);
+                if (cols.length > Math.max(whIdx, matIdx, deptIdx)) {
+                    const wh = cols[whIdx];
+                    const mat = cols[matIdx];
+                    const dept = cols[deptIdx];
+                    if (wh && mat) {
+                        baseCsvMap.set(`${wh}|${mat}`, dept);
+                    }
+                }
+            }
+        }
+
+        function findOrderDept(warehouse, materialId) {
+            if (!warehouse || !materialId) return '-';
+            return baseCsvMap.get(`${warehouse}|${materialId}`) || '-';
+        }
+
+        function normalizeDateToISO(dStr) {
+            if (!dStr) return '';
+            let str = String(dStr).trim().replace(/\//g, '-').replace(/\./g, '-');
+            if (str.length === 8 && !str.includes('-')) {
+                return `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`;
+            }
+            return str;
+        }
+
+        let statusHistoryList = []; 
+        let currentEditingStatusKey = null;
+
+        function getStatusForMaterial(warehouse, materialId, dateStr) {
+            const normDate = normalizeDateToISO(dateStr);
+            if (!normDate || !warehouse || !materialId) {
+                return { status: '未處理', note: '', handler: '', inherited: false, inheritedDate: null };
+            }
+
+            const targetTime = new Date(normDate).getTime();
+            if (isNaN(targetTime)) {
+                return { status: '未處理', note: '', handler: '', inherited: false, inheritedDate: null };
+            }
+
+            const tenDaysInMs = 10 * 24 * 60 * 60 * 1000;
+            const cutoffTime = targetTime - tenDaysInMs;
+
+            const candidates = statusHistoryList.filter(item => {
+                if (item.warehouse !== warehouse || item.materialId !== materialId) return false;
+                const itemTime = new Date(item.reportDate).getTime();
+                return !isNaN(itemTime) && itemTime <= targetTime && itemTime >= cutoffTime;
+            });
+
+            if (candidates.length === 0) {
+                return { status: '未處理', note: '', handler: '', inherited: false, inheritedDate: null };
+            }
+
+            candidates.sort((a, b) => {
+                const tA = new Date(a.reportDate).getTime();
+                const tB = new Date(b.reportDate).getTime();
+                if (tA !== tB) return tB - tA;
+                const uA = new Date(a.updatedAt || 0).getTime();
+                const uB = new Date(b.updatedAt || 0).getTime();
+                return uB - uA;
+            });
+
+            const latest = candidates[0];
+            const isInherited = latest.reportDate !== normDate;
+
+            return {
+                status: latest.status || '未處理',
+                note: latest.note || '',
+                handler: latest.handler || '',
+                inheritedDate: isInherited ? latest.reportDate : null,
+                inherited: isInherited
+            };
+        }
+
+        function openProcessStatusModal(key, warehouse, materialId, date) {
+            currentEditingStatusKey = key;
+            const normDate = normalizeDateToISO(date);
+            const statusObj = getStatusForMaterial(warehouse, materialId, normDate);
+
+            document.getElementById('modalWarehouse').value = warehouse || '';
+            document.getElementById('modalMaterialId').value = materialId || '';
+            document.getElementById('modalReportDate').value = normDate || '';
+
+            document.getElementById('modalWarehouseDisplay').textContent = warehouse || '--';
+            document.getElementById('modalMaterialDisplay').textContent = materialId || '--';
+            document.getElementById('modalDateDisplay').textContent = normDate || '--';
+
+            const statusSelect = document.getElementById('modalStatus');
+            if (statusSelect) statusSelect.value = statusObj.status || '未處理';
+
+            const noteInput = document.getElementById('modalNotes');
+            if (noteInput) noteInput.value = statusObj.note || '';
+
+            const handlerInput = document.getElementById('modalUpdatedBy');
+            if (handlerInput) {
+                const currentName = sessionStorage.getItem('userFullName') || sessionStorage.getItem('loggedInUser') || '';
+                handlerInput.value = currentName || statusObj.handler || '';
+            }
+            
+            const modal = document.getElementById('progressModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeProgressModal() {
+            currentEditingStatusKey = null;
+            const modal = document.getElementById('progressModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function showNoDataModal() {
+            const modal = document.getElementById('noDataModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeNoDataModal() {
+            const modal = document.getElementById('noDataModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        async function handleSaveProgress(event) {
+            if (event) event.preventDefault();
+            if (!currentEditingStatusKey) return;
+
+            const warehouse = document.getElementById('modalWarehouse').value;
+            const materialId = document.getElementById('modalMaterialId').value;
+            const rawReportDate = document.getElementById('modalReportDate').value;
+            const reportDate = normalizeDateToISO(rawReportDate);
+
+            const statusSelect = document.getElementById('modalStatus');
+            const noteInput = document.getElementById('modalNotes');
+            const handlerInput = document.getElementById('modalUpdatedBy');
+
+            const status = statusSelect ? statusSelect.value : '未處理';
+            const notes = noteInput ? noteInput.value.trim() : '';
+            const updatedBy = handlerInput ? handlerInput.value.trim() : '';
+
+            const nowIso = new Date().toISOString();
+            const existingIdx = statusHistoryList.findIndex(
+                item => item.warehouse === warehouse && item.materialId === materialId && item.reportDate === reportDate
+            );
+
+            const newRecord = {
+                reportDate,
+                warehouse,
+                materialId,
+                status,
+                note: notes,
+                handler: updatedBy,
+                updatedAt: nowIso
+            };
+
+            if (existingIdx >= 0) {
+                statusHistoryList[existingIdx] = newRecord;
+            } else {
+                statusHistoryList.push(newRecord);
+            }
+
+            if (supabaseClient) {
+                const saveBtn = document.getElementById('saveProgressBtn');
+                if (saveBtn) saveBtn.disabled = true;
+
+                try {
+                    const payload = {
+                        warehouse: warehouse,
+                        material_id: materialId,
+                        report_date: reportDate,
+                        status: status,
+                        notes: notes,
+                        updated_by: updatedBy,
+                        updated_at: nowIso
+                    };
+
+                    const { data: existingRecords, error: searchErr } = await supabaseClient
+                        .from('out_of_stock_items')
+                        .select('id')
+                        .eq('warehouse', warehouse)
+                        .eq('material_id', materialId)
+                        .eq('report_date', reportDate);
+
+                    let dbErr = null;
+                    if (!searchErr && existingRecords && existingRecords.length > 0) {
+                        const { error } = await supabaseClient
+                            .from('out_of_stock_items')
+                            .update(payload)
+                            .eq('id', existingRecords[0].id);
+                        dbErr = error;
+                    } else {
+                        const { error } = await supabaseClient
+                            .from('out_of_stock_items')
+                            .insert(payload);
+                        dbErr = error;
+                    }
+
+                    if (dbErr) {
+                        console.error('Supabase 儲存至 out_of_stock_items 失敗:', dbErr);
+                        if (dbErr.code === '42501') {
+                            showError('⚠️ Supabase 寫入權限不足 (RLS 42501)');
+                        } else {
+                            showError(`儲存失敗: ${dbErr.message || '資料庫錯誤'}`);
+                        }
+                    }
+                } catch (err) {
+                    console.error('連線 Supabase 儲存失敗:', err);
+                    showError(`連線 Supabase 失敗: ${err.message}`);
+                } finally {
+                    if (saveBtn) saveBtn.disabled = false;
+                }
+            }
+
+            closeProgressModal();
+            renderTab1();
+        }
+
         let selectedQueryDate = new Date();
 
         function formatDateToYYYYMMDD(d) {
@@ -320,6 +882,7 @@
         function updateStatusBadge(type, message) {
             const badge = document.getElementById('supabaseStatusBadge');
             const text = document.getElementById('statusText');
+            if (!badge || !text) return;
             text.textContent = message;
 
             if (type === 'success') {
@@ -336,6 +899,7 @@
 
         function addFileBadge(name, type) {
             const fileStatus = document.getElementById('fileStatus');
+            if (!fileStatus) return;
             const colorClass = type.startsWith('25') ? 'bg-blue-50 text-blue-600 border-blue-200' : 
                               type.startsWith('OW') ? 'bg-green-50 text-green-600 border-green-200' : 
                               'bg-purple-50 text-purple-600 border-purple-200';
@@ -348,8 +912,10 @@
 
         function showError(msg) {
             const errorMessage = document.getElementById('errorMessage');
-            document.getElementById('errorText').innerText = msg;
-            errorMessage.classList.remove('hidden');
+            if (errorMessage) {
+                document.getElementById('errorText').innerText = msg;
+                errorMessage.classList.remove('hidden');
+            }
         }
 
         function initSupabaseClient() {
@@ -363,11 +929,13 @@
         async function fetchTodayDataFromSupabase() {
             const detailText = document.getElementById('syncDetailText');
             const fileStatus = document.getElementById('fileStatus');
-            fileStatus.innerHTML = '';
+            if (fileStatus) fileStatus.innerHTML = '';
+
+            await loadBaseCsv();
 
             if (!initSupabaseClient()) {
                 updateStatusBadge('warning', '初始化失敗');
-                detailText.innerHTML = `Supabase SDK 載入異常，請重新整理頁面。`;
+                if (detailText) detailText.innerHTML = `Supabase SDK 載入異常，請重新整理頁面。`;
                 return;
             }
 
@@ -375,14 +943,13 @@
             const iso = formatDateToISO(selectedQueryDate);
 
             updateStatusBadge('loading', '連線中...');
-            detailText.textContent = `正在從 Storage (${BUCKET_NAME}) 搜尋 ${iso} 的缺貨資料檔...`;
+            if (detailText) detailText.textContent = `正在 Storage (${BUCKET_NAME}) 搜尋 ${iso} 的缺貨資料檔...`;
 
             tab1Data = [];
             tab2Data = [];
             tab3Data = [];
 
             try {
-                // Try searching in folder YYYYMMDD/ or YYYY-MM-DD/ or root
                 const folderPaths = [`${ymd}`, `${iso}`, ''];
                 let fileList = [];
 
@@ -397,7 +964,6 @@
                     }
                 }
 
-                // Filter files for current date or matching daily pattern
                 const targetFiles = fileList.filter(f => {
                     const fn = f.name.toUpperCase();
                     return (fn.includes('SHORT25') || fn.includes('G5404') || fn.includes('ONWAY')) &&
@@ -405,7 +971,6 @@
                 });
 
                 if (targetFiles.length === 0) {
-                    // Try fetching from daily_reports DB table as a fallback option
                     const { data: dbData, error: dbErr } = await supabaseClient
                         .from('daily_reports')
                         .select('*')
@@ -416,18 +981,18 @@
                             parseAndProcessContent(row.file_name || row.type, row.content);
                         });
                         updateStatusBadge('success', '已同步');
-                        detailText.textContent = `成功從 資料庫讀取 ${dbData.length} 筆當日報表紀錄。`;
+                        if (detailText) detailText.textContent = `成功從 Supabase 資料庫讀取 ${dbData.length} 筆當日報表紀錄。`;
                         renderAllTabs();
                         return;
                     }
 
                     updateStatusBadge('warning', '無當日資料');
-                    detailText.innerHTML = `在 Bucket (${BUCKET_NAME}) 未找到 ${iso} (${ymd}) 的相關檔案。<a href="#" onclick="loadMockData(); return false;" class="text-indigo-600 underline font-semibold">點此載入範例資料</a>進行測試。`;
+                    if (detailText) detailText.innerHTML = `在 Bucket (${BUCKET_NAME}) 未找到 ${iso} (${ymd}) 的相關檔案。<a href="#" onclick="loadMockData(); return false;" class="text-indigo-600 underline font-semibold">點此載入範例資料</a>進行預覽。`;
                     renderAllTabs();
+                    showNoDataModal();
                     return;
                 }
 
-                // Fetch files content
                 let loadedCount = 0;
                 for (const fileObj of targetFiles) {
                     const { data: blob, error } = await supabaseClient.storage.from(BUCKET_NAME).download(fileObj.path);
@@ -440,18 +1005,44 @@
 
                 if (loadedCount > 0) {
                     updateStatusBadge('success', '已同步');
-                    detailText.textContent = `成功擷取並解析 ${loadedCount} 個當天資料檔！`;
+                    if (detailText) detailText.textContent = `成功擷取並解析 ${loadedCount} 個當天資料檔！`;
                 } else {
                     updateStatusBadge('warning', '下載失敗');
-                    detailText.textContent = `發現檔案但無法讀取，請確認 Storage 存取權限。`;
+                    if (detailText) detailText.textContent = `發現檔案但無法讀取，請確認 Storage 存取權限。`;
+                }
+
+                if (supabaseClient) {
+                    try {
+                        const { data: statusRecords, error: statusErr } = await supabaseClient
+                            .from('out_of_stock_items')
+                            .select('*');
+                        
+                        if (!statusErr && statusRecords) {
+                            statusHistoryList = statusRecords.map(rec => ({
+                                reportDate: normalizeDateToISO(rec.report_date),
+                                warehouse: rec.warehouse,
+                                materialId: rec.material_id,
+                                status: rec.status,
+                                note: rec.notes || '',
+                                handler: rec.updated_by || '',
+                                updatedAt: rec.updated_at || rec.created_at || ''
+                            }));
+                        }
+                    } catch (e) {
+                        console.warn('無法獲取 out_of_stock_items 歷史進度:', e);
+                    }
                 }
 
                 renderAllTabs();
 
+                if (tab1Data.length === 0 && tab2Data.length === 0 && tab3Data.length === 0) {
+                    showNoDataModal();
+                }
+
             } catch (err) {
                 console.error(err);
                 updateStatusBadge('warning', '擷取失敗');
-                detailText.textContent = `連線 Supabase 發生錯誤: ${err.message || '請確認網路與連線狀態'}`;
+                if (detailText) detailText.textContent = `連線 Supabase 發生錯誤: ${err.message || '請確認網路與連線狀態'}`;
             }
         }
 
@@ -499,6 +1090,21 @@
             let warehouseFromFilename = fileName.substring(0, 2).toUpperCase();
             if (!["MA", "GA", "KA"].includes(warehouseFromFilename)) warehouseFromFilename = "MA";
             
+            const formatEndDate = (val) => {
+                const s = String(val || '').trim();
+                if (!s || s.toLowerCase() === 'empty' || s === '0') {
+                    const today = new Date();
+                    return `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
+                }
+                if (s.length === 7) {
+                    const year = parseInt(s.substring(0, 3)) + 1911;
+                    const month = s.substring(3, 5);
+                    const day = s.substring(5, 7);
+                    return `${year}/${month}/${day}`;
+                }
+                return s;
+            };
+
             for (let i = 1; i < lines.length; i++) {
                 const cols = lines[i].split(';').map(c => c.trim());
                 if (cols.length < 5) continue;
@@ -510,7 +1116,7 @@
                     delivery: cols[3],
                     monthlyQty: formatLeadingZeros(cols[4]), 
                     stockQty: formatLeadingZeros(cols[5]), 
-                    endDate: cols[6], 
+                    endDate: formatEndDate(cols[6]), 
                     reqNo: cols[7],
                     reqDate: cols[8], 
                     needDate: cols[9], 
@@ -546,6 +1152,45 @@
                     dept: cols[15]
                 });
             }
+        }
+
+        function loadMockData() {
+            const ymd = formatDateToYYYYMMDD(selectedQueryDate);
+            const formattedDate = `${ymd.slice(0,4)}/${ymd.slice(4,6)}/${ymd.slice(6,8)}`;
+
+            tab1Data = [
+                { date: formattedDate, warehouse: 'MA', materialId: 'MAT-2026-001', unit: 'EA', source: 'D' },
+                { date: formattedDate, warehouse: 'MA', materialId: 'MAT-2026-001', unit: 'EA', source: 'E' },
+                { date: formattedDate, warehouse: 'GA', materialId: 'MAT-2026-002', unit: 'BOX', source: 'D' },
+                { date: formattedDate, warehouse: 'KA', materialId: 'MAT-2026-003', unit: 'KG', source: 'E' },
+                { date: formattedDate, warehouse: 'MA', materialId: 'MAT-2026-004', unit: 'SET', source: 'D' }
+            ];
+
+            tab2Data = [
+                { warehouse: 'MA', materialId: 'MAT-2026-001', unit: 'EA', spec: '精密感測器單元 Alpha-5', delivery: '是', monthlyQty: '1200', stockQty: '150', endDate: '2026-07-28', reqNo: 'PR202607001', reqDate: '2026-07-15', needDate: '2026-07-25', onWayQty: '500', leadTime: '7', vendorId: 'VND-8801' },
+                { warehouse: 'GA', materialId: 'MAT-2026-002', unit: 'BOX', spec: '高密度連接線組 B-12', delivery: '否', monthlyQty: '800', stockQty: '45', endDate: '2026-07-24', reqNo: 'PR202607005', reqDate: '2026-07-18', needDate: '2026-07-26', onWayQty: '300', leadTime: '5', vendorId: 'VND-8802' },
+                { warehouse: 'KA', materialId: 'MAT-2026-003', unit: 'KG', spec: '工業級導熱塗料 CX', delivery: '是', monthlyQty: '2500', stockQty: '200', endDate: '2026-07-23', reqNo: 'PR202607009', reqDate: '2026-07-10', needDate: '2026-07-24', onWayQty: '1000', leadTime: '10', vendorId: 'VND-8803' },
+                { warehouse: 'MA', materialId: 'MAT-2026-004', unit: 'SET', spec: '主控板配件模組 M4', delivery: '是', monthlyQty: '400', stockQty: '20', endDate: '2026-07-22', reqNo: 'PR202607012', reqDate: '2026-07-19', needDate: '2026-07-27', onWayQty: '200', leadTime: '6', vendorId: 'VND-8801' }
+            ];
+
+            tab3Data = [
+                { reqNo: 'PR202607001', batch: '001', item: '1', materialId: 'MAT-2026-001', unit: 'EA', warehouse: 'MA', vendorId: 'VND-8801', reqDate: '2026-07-15', promiseDate: '2026-07-20', reqQty: '500', ordQty: '500', delivQty: '0', phone: '02-23456789', fax: '02-23456790', vendorShort: '台亞科技', dept: '資材部' },
+                { reqNo: 'PR202607005', batch: 'XX', item: '1', materialId: 'MAT-2026-002', unit: 'BOX', warehouse: 'GA', vendorId: 'VND-8802', reqDate: '2026-07-18', promiseDate: '2026-07-26', reqQty: '300', ordQty: '300', delivQty: '100', phone: '03-34567890', fax: '03-34567891', vendorShort: '國電電子', dept: '製造一部' },
+                { reqNo: 'PR202607009', batch: '002', item: '1', materialId: 'MAT-2026-003', unit: 'KG', warehouse: 'KA', vendorId: 'VND-8803', reqDate: '2026-07-10', promiseDate: '2026-07-15', reqQty: '1000', ordQty: '1000', delivQty: '0', phone: '07-78901234', fax: '07-78901235', vendorShort: '高科化學', dept: '資材部' },
+                { reqNo: 'PR202607012', batch: 'XX', item: '2', materialId: 'MAT-2026-004', unit: 'SET', warehouse: 'MA', vendorId: 'VND-8801', reqDate: '2026-07-19', promiseDate: '2026-07-27', reqQty: '200', ordQty: '200', delivQty: '0', phone: '02-23456789', fax: '02-23456790', vendorShort: '台亞科技', dept: '研發部' }
+            ];
+
+            const fileStatus = document.getElementById('fileStatus');
+            if (fileStatus) fileStatus.innerHTML = '';
+            addFileBadge('SHORT25D_DEMO.txt', '25D');
+            addFileBadge('SHORT25E_DEMO.txt', '25E');
+            addFileBadge('MAG5404_DEMO.txt', 'G5404');
+            addFileBadge('ONWAYPURHMA_DEMO.txt', 'OW-MA');
+
+            updateStatusBadge('success', '範例資料已載入');
+            const syncDetail = document.getElementById('syncDetailText');
+            if (syncDetail) syncDetail.textContent = '已成功載入預設範例資料，供系統預覽與功能測試。';
+            renderAllTabs();
         }
 
         function findSpecByMaterialId(matId) {
@@ -595,6 +1240,47 @@
             } else {
                 select.value = 'ALL';
             }
+
+            const batchSelect = document.getElementById('batchFilterSelect');
+            if (batchSelect) {
+                const currentBatchVal = batchSelect.value;
+                const batches = new Set();
+                tab3Data.forEach(row => {
+                    if (row.batch) batches.add(row.batch);
+                });
+
+                let batchOptionsHtml = '<option value="ALL">全部批號</option>';
+                Array.from(batches).sort().forEach(b => {
+                    batchOptionsHtml += `<option value="${b}">${b}</option>`;
+                });
+                batchSelect.innerHTML = batchOptionsHtml;
+                if (Array.from(batches).includes(currentBatchVal) || currentBatchVal === 'ALL') {
+                    batchSelect.value = currentBatchVal;
+                } else {
+                    batchSelect.value = 'ALL';
+                }
+            }
+
+            const orderDeptSelect = document.getElementById('orderDeptFilterSelect');
+            if (orderDeptSelect) {
+                const currentDeptVal = orderDeptSelect.value;
+                const depts = new Set();
+                tab3Data.forEach(row => {
+                    const dept = findOrderDept(row.warehouse, row.materialId);
+                    if (dept && dept !== '-') depts.add(dept);
+                });
+
+                let deptOptionsHtml = '<option value="ALL">全部訂購別</option>';
+                Array.from(depts).sort().forEach(dept => {
+                    deptOptionsHtml += `<option value="${dept}">${dept}</option>`;
+                });
+                orderDeptSelect.innerHTML = deptOptionsHtml;
+                if (Array.from(depts).includes(currentDeptVal) || currentDeptVal === 'ALL') {
+                    orderDeptSelect.value = currentDeptVal;
+                } else {
+                    orderDeptSelect.value = 'ALL';
+                }
+            }
         }
 
         function renderAllTabs() {
@@ -606,8 +1292,9 @@
 
         function renderTab1() {
             const tbody = document.getElementById('resultBodyTab1');
+            if (!tbody) return;
             if (tab1Data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="11" class="px-6 py-10 text-center text-gray-400 italic">無 SHORT25D 或 SHORT25E 資料。</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="13" class="px-6 py-10 text-center text-gray-400 italic">無 SHORT25D 或 SHORT25E 資料。</td></tr>`;
                 return;
             }
             
@@ -615,7 +1302,7 @@
             const filteredData = selectedWh === 'ALL' ? tab1Data : tab1Data.filter(item => item.warehouse === selectedWh);
 
             if (filteredData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="11" class="px-6 py-10 text-center text-gray-400 italic">供應庫「${selectedWh}」無符合之缺貨資料。</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="13" class="px-6 py-10 text-center text-gray-400 italic">供應庫「${selectedWh}」無符合之缺貨資料。</td></tr>`;
                 return;
             }
 
@@ -643,9 +1330,19 @@
                 return a.materialId.localeCompare(b.materialId);
             });
 
+            const vendorCountMap = new Map();
+            sortedData.forEach(row => {
+                const onWay = findOnWayInfo(row.materialId, row.warehouse);
+                const vShort = onWay.vendorShort;
+                if (vShort && vShort !== '-') {
+                    vendorCountMap.set(vShort, (vendorCountMap.get(vShort) || 0) + 1);
+                }
+            });
+
             tbody.innerHTML = sortedData.map(row => {
                 const isRepeatedAcrossSet = materialTotalCountMap.get(row.materialId) > row.count;
                 const spec = findSpecByMaterialId(row.materialId);
+                const orderDept = findOrderDept(row.warehouse, row.materialId);
                 
                 let remark = '-';
                 if (isRepeatedAcrossSet) {
@@ -655,20 +1352,96 @@
                 }
                 
                 const onWay = findOnWayInfo(row.materialId, row.warehouse);
+
+                const hasReqNo = onWay.reqNo && onWay.reqNo !== '-' && onWay.reqNo.trim() !== '';
+                const reqNoDisplay = hasReqNo 
+                    ? `<span class="font-mono text-indigo-700">${onWay.reqNo}</span>`
+                    : `<span class="bg-green-600 text-white font-bold px-2 py-0.5 rounded shadow-sm inline-block">無請購案號</span>`;
+
+                const hasVendor = onWay.vendorShort && onWay.vendorShort !== '-' && onWay.vendorShort.trim() !== '';
+                const isVendorDuplicate = hasVendor && (vendorCountMap.get(onWay.vendorShort) || 0) > 1;
+                
+                let vendorDisplay = '';
+                if (!hasVendor) {
+                    vendorDisplay = `<span class="bg-red-600 text-white font-bold px-2 py-0.5 rounded shadow-sm inline-block">尚未訂購</span>`;
+                } else if (isVendorDuplicate) {
+                    vendorDisplay = `<span class="bg-yellow-200 text-yellow-900 px-2 py-0.5 rounded font-bold shadow-sm inline-block">${onWay.vendorShort}</span>`;
+                } else {
+                    vendorDisplay = `<span class="font-semibold text-indigo-700">${onWay.vendorShort}</span>`;
+                }
+
+                const normDate = normalizeDateToISO(row.date);
+                const itemKey = `${normDate}|${row.warehouse}|${row.materialId}`;
+                
+                const statusObj = getStatusForMaterial(row.warehouse, row.materialId, normDate);
+                const status = statusObj.status || '未處理';
+
+                let statusBadgeClass = 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200';
+                let statusIcon = '📝';
+                if (status === '未處理') {
+                    statusBadgeClass = 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100';
+                    statusIcon = '⏳';
+                } else if (status === '已到貨入庫') {
+                    statusBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100';
+                    statusIcon = '✅';
+                } else if (status === '已洽供應商') {
+                    statusBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
+                    statusIcon = '📞';
+                } else if (status === '尚未訂購') {
+                    statusBadgeClass = 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100';
+                    statusIcon = '⚠️';
+                } else if (status === '配合交貨') {
+                    statusBadgeClass = 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100';
+                    statusIcon = '🤝';
+                } else if (status === '無存管') {
+                    statusBadgeClass = 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200';
+                    statusIcon = '🚫';
+                } else if (status === '02附圖') {
+                    statusBadgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100';
+                    statusIcon = '📐';
+                } else if (status === '03調撥') {
+                    statusBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100';
+                    statusIcon = '🔄';
+                } else if (status === '其他(詳說明)') {
+                    statusBadgeClass = 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200';
+                    statusIcon = '💬';
+                }
+
+                let statusDisplayText = `${statusIcon} ${status}`;
+                if (statusObj.inherited && statusObj.inheritedDate) {
+                    statusDisplayText += ` (沿用 ${statusObj.inheritedDate.slice(5)})`;
+                } else if (statusObj.handler) {
+                    statusDisplayText += ` (${statusObj.handler})`;
+                }
+
+                const tooltipText = statusObj.inherited 
+                    ? `[沿用自 ${statusObj.inheritedDate} 紀錄] ${statusObj.note ? '說明: ' + statusObj.note : '點擊更新今日處理進度'}`
+                    : (statusObj.note ? '說明: ' + statusObj.note : '點擊更新處理進度');
+
+                const statusBtn = `
+                    <button onclick="openProcessStatusModal('${itemKey}', '${row.warehouse}', '${row.materialId}', '${normDate}')" title="${tooltipText}" class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition duration-150 inline-flex items-center gap-1 cursor-pointer ${statusBadgeClass}">
+                        <span class="max-w-[150px] truncate">${statusDisplayText}</span>
+                    </button>
+                `;
+
+                const countClass = row.count > 10 ? 'text-red-600 font-extrabold text-sm' : 'text-indigo-600 font-bold';
+
                 return `
                 <tr class="hover:bg-blue-50 border-b border-gray-100 transition whitespace-nowrap">
+                    <td class="px-4 py-3 text-center">${statusBtn}</td>
                     <td class="px-4 py-3">${row.date}</td>
                     <td class="px-4 py-3 font-medium text-blue-800">${row.warehouse}</td>
                     <td class="px-4 py-3 font-mono font-semibold">${row.materialId}</td>
                     <td class="px-4 py-3 text-gray-600 truncate max-w-[200px]">${spec}</td>
                     <td class="px-4 py-3 text-gray-500">${row.unit || '-'}</td>
-                    <td class="px-4 py-3 text-center font-bold text-indigo-600">${row.count}</td>
+                    <td class="px-4 py-3 text-center ${countClass}">${row.count}</td>
                     <td class="px-4 py-3 text-center">
                         ${Array.from(row.sources).map(s => `<span class="${s==='D'?'bg-red-500':'bg-blue-500'} text-white px-1.5 py-0.5 rounded text-[10px] mr-1">25${s}</span>`).join('')}
                     </td>
                     <td class="px-4 py-3 text-center font-bold">${remark}</td>
-                    <td class="px-4 py-3 font-mono text-indigo-700">${onWay.reqNo}</td>
-                    <td class="px-4 py-3 font-semibold text-indigo-700">${onWay.vendorShort}</td>
+                    <td class="px-4 py-3 font-semibold text-indigo-700">${orderDept}</td>
+                    <td class="px-4 py-3">${reqNoDisplay}</td>
+                    <td class="px-4 py-3">${vendorDisplay}</td>
                     <td class="px-4 py-3 text-indigo-700">${onWay.phone}</td>
                 </tr>
                 `;
@@ -677,21 +1450,52 @@
 
         function renderTab2() {
             const tbody = document.getElementById('resultBodyTab2');
+            if (!tbody) return;
             if (tab2Data.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 italic text-sm">無 G5404 安全庫存資料。</td></tr>`;
                 return;
             }
 
             const selectedWh = document.getElementById('warehouseFilterSelect')?.value || 'ALL';
-            const filteredData = selectedWh === 'ALL' ? tab2Data : tab2Data.filter(item => item.warehouse === selectedWh);
+            const selectedEndDateRange = document.getElementById('endDateFilterSelect')?.value || 'ALL';
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const filteredData = tab2Data.filter(item => {
+                const matchWh = (selectedWh === 'ALL' || item.warehouse === selectedWh);
+                
+                let matchEndDate = true;
+                if (selectedEndDateRange !== 'ALL') {
+                    const endDateParts = item.endDate.split('/');
+                    const endDateObj = new Date(endDateParts[0], parseInt(endDateParts[1]) - 1, endDateParts[2]);
+                    const diffDays = Math.ceil((endDateObj - today) / (1000 * 60 * 60 * 24));
+                    
+                    if (selectedEndDateRange === '7D') matchEndDate = diffDays <= 7;
+                    else if (selectedEndDateRange === '14D') matchEndDate = diffDays <= 14;
+                    else if (selectedEndDateRange === '30D') matchEndDate = diffDays <= 30;
+                }
+                
+                return matchWh && matchEndDate;
+            });
 
             if (filteredData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 italic text-sm">供應庫「${selectedWh}」無符合之在庫低於安全庫存資料。</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 italic text-sm">無符合篩選條件之安全庫存資料。</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = filteredData.map(row => {
                 const vendorShort = findVendorShortById(row.vendorId);
+                const endDateParts = row.endDate.split('/');
+                const endDateObj = new Date(endDateParts[0], parseInt(endDateParts[1]) - 1, endDateParts[2]);
+                const diffTime = endDateObj - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                let dateDisplay = `<span class="text-blue-600 font-semibold">${row.endDate}</span>`;
+                if (diffDays <= 14) {
+                    dateDisplay = `<span class="bg-red-600 text-white font-bold px-2 py-0.5 rounded shadow-sm">${row.endDate} (${diffDays}天)</span>`;
+                }
+
                 return `
                 <tr class="hover:bg-indigo-50 border-b border-gray-100 transition whitespace-nowrap">
                     <td class="px-3 py-2 font-bold text-blue-800">${row.warehouse}</td>
@@ -701,7 +1505,7 @@
                     <td class="px-3 py-2 text-center">${row.delivery}</td>
                     <td class="px-3 py-2 text-right">${row.monthlyQty}</td>
                     <td class="px-3 py-2 text-right text-red-600 font-bold">${row.stockQty}</td>
-                    <td class="px-3 py-2 text-center text-blue-600">${row.endDate}</td>
+                    <td class="px-3 py-2 text-center">${dateDisplay}</td>
                     <td class="px-3 py-2 font-mono">${row.reqNo}</td>
                     <td class="px-3 py-2 text-center">${row.reqDate}</td>
                     <td class="px-3 py-2 text-center">${row.needDate}</td>
@@ -716,46 +1520,80 @@
 
         function renderTab3() {
             const tbody = document.getElementById('resultBodyTab3');
+            if (!tbody) return;
             if (tab3Data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="16" class="px-6 py-10 text-center text-gray-400 text-sm italic">無 OnWayPurh 在途資料。</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="17" class="px-6 py-10 text-center text-gray-400 text-sm italic">無 OnWayPurh 在途資料。</td></tr>`;
                 return;
             }
 
             const selectedWh = document.getElementById('warehouseFilterSelect')?.value || 'ALL';
-            const filteredData = selectedWh === 'ALL' ? tab3Data : tab3Data.filter(item => item.warehouse === selectedWh);
+            const selectedBatch = document.getElementById('batchFilterSelect')?.value || 'ALL';
+            const selectedDept = document.getElementById('orderDeptFilterSelect')?.value || 'ALL';
+
+            const filteredData = tab3Data.filter(item => {
+                const matchWh = (selectedWh === 'ALL' || item.warehouse === selectedWh);
+                const matchBatch = (selectedBatch === 'ALL' || item.batch === selectedBatch);
+                const orderDept = findOrderDept(item.warehouse, item.materialId);
+                const matchDept = (selectedDept === 'ALL' || orderDept === selectedDept);
+                return matchWh && matchBatch && matchDept;
+            });
 
             if (filteredData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="16" class="px-6 py-10 text-center text-gray-400 text-sm italic">供應庫「${selectedWh}」無符合之在途資料。</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="17" class="px-6 py-10 text-center text-gray-400 text-sm italic">無符合篩選條件之在途資料。</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = filteredData.map(row => `
+            const queryIsoDate = formatDateToISO(selectedQueryDate);
+
+            tbody.innerHTML = filteredData.map(row => {
+                const promiseIso = normalizeDateToISO(row.promiseDate);
+                const isPastPromiseDate = promiseIso && promiseIso < queryIsoDate;
+                const promiseDateHtml = isPastPromiseDate
+                    ? `<span class="bg-red-600 text-white font-bold px-2 py-0.5 rounded shadow-sm inline-block">${row.promiseDate}</span>`
+                    : `<span class="text-blue-600 font-semibold">${row.promiseDate}</span>`;
+
+                const isXXBatch = String(row.batch || '').trim().toUpperCase() === 'XX';
+                const batchHtml = isXXBatch
+                    ? `<span class="bg-red-600 text-white font-bold px-2 py-0.5 rounded shadow-sm inline-block">${row.batch}</span>`
+                    : row.batch;
+
+                const orderDept = findOrderDept(row.warehouse, row.materialId);
+
+                return `
                 <tr class="hover:bg-green-50 border-b border-gray-100 transition whitespace-nowrap">
                     <td class="px-3 py-2 font-bold font-mono">${row.reqNo}</td>
-                    <td class="px-3 py-2">${row.batch}</td>
+                    <td class="px-3 py-2 text-center">${batchHtml}</td>
                     <td class="px-3 py-2">${row.item}</td>
+                    <td class="px-3 py-2 font-semibold text-indigo-700">${orderDept}</td>
                     <td class="px-3 py-2 font-mono font-semibold">${row.materialId}</td>
                     <td class="px-3 py-2">${row.unit}</td>
                     <td class="px-3 py-2 font-semibold text-blue-700">${row.warehouse}</td>
-                    <td class="px-3 py-2 truncate max-w-[120px]" title="${row.vendorId}">${row.vendorId}</td>
+                    <td class="px-3 py-2 font-semibold text-indigo-700">${row.vendorShort || '-'}</td>
                     <td class="px-3 py-2 text-center">${row.reqDate}</td>
-                    <td class="px-3 py-2 text-center text-blue-600 font-semibold">${row.promiseDate}</td>
+                    <td class="px-3 py-2 text-center">${promiseDateHtml}</td>
                     <td class="px-3 py-2 text-right font-medium">${row.reqQty}</td>
                     <td class="px-3 py-2 text-right font-bold text-green-700">${row.ordQty}</td>
                     <td class="px-3 py-2 text-right">${row.delivQty}</td>
                     <td class="px-3 py-2">${row.phone}</td>
                     <td class="px-3 py-2">${row.fax}</td>
-                    <td class="px-3 py-2 font-semibold text-indigo-700">${row.vendorShort || '-'}</td>
+                    <td class="px-3 py-2 truncate max-w-[120px]" title="${row.vendorId}">${row.vendorId}</td>
                     <td class="px-3 py-2">${row.dept}</td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function clearData(tab) {
-            if (tab === 'tab1') tab1Data = [];
-            else if (tab === 'tab2') tab2Data = [];
-            else tab3Data = [];
-            renderAllTabs();
+            if (tab === 'tab1') {
+                tab1Data = [];
+                renderTab1();
+            } else if (tab === 'tab2') {
+                tab2Data = [];
+                renderTab2();
+            } else if (tab === 'tab3') {
+                tab3Data = [];
+                renderTab3();
+            }
         }
 
         function exportCSV(tab) {
@@ -763,12 +1601,12 @@
             const fileDate = getMainDate();
 
             if (tab === 'tab1') {
-                csvContent += "日期,庫別,材料編號,品名規格,單位,次數,類別,備註,請購案號,廠商簡稱,電話\n";
+                csvContent += "處理進度,日期,庫別,材料編號,品名規格,單位,缺貨筆數,類別,備註,訂購別,請購案號,廠商簡稱,電話\n";
                 fileName = `缺貨資料_${fileDate}.csv`;
                 const tbody = document.getElementById('resultBodyTab1');
                 tbody.querySelectorAll('tr').forEach(tr => {
                     const tds = Array.from(tr.querySelectorAll('td')).map(td => `"${td.innerText.trim()}"`);
-                    if (tds.length === 11) csvContent += tds.join(",") + "\n";
+                    if (tds.length === 13) csvContent += tds.join(",") + "\n";
                 });
             } else if (tab === 'tab2') {
                 csvContent += "供應庫,材料編號,單位,品名規格,配合交貨,設定月用量,庫存量,用完日,請購案號,請購日,需要日/約交日,在途量,進貨天數,廠商編號,廠商簡稱\n";
@@ -778,10 +1616,11 @@
                     if (tds.length === 15) csvContent += tds.join(",") + "\n";
                 });
             } else {
-                csvContent += "請購案號,批號,項次,材料編號,單位,庫別,訂購廠商,請購日期,約交日期,請購數量,訂購數量,累交數量,電話,傳真,廠商簡稱,請購部門\n";
+                csvContent += "請購案號,批號,項次,訂購別,材料編號,單位,庫別,廠商簡稱,請購日期,約交日期,請購數量,訂購數量,累交數量,電話,傳真,訂購廠商,請購部門\n";
                 fileName = `在途資料_${fileDate}.csv`;
                 tab3Data.forEach(row => {
-                    const vals = [row.reqNo, row.batch, row.item, row.materialId, row.unit, row.warehouse, row.vendorId, row.reqDate, row.promiseDate, row.reqQty, row.ordQty, row.delivQty, row.phone, row.fax, row.vendorShort, row.dept];
+                    const orderDept = findOrderDept(row.warehouse, row.materialId);
+                    const vals = [row.reqNo, row.batch, row.item, orderDept, row.materialId, row.unit, row.warehouse, row.vendorShort, row.reqDate, row.promiseDate, row.reqQty, row.ordQty, row.delivQty, row.phone, row.fax, row.vendorId, row.dept];
                     csvContent += vals.map(v => `"${v}"`).join(",") + "\n";
                 });
             }
@@ -792,42 +1631,103 @@
             link.click();
         }
 
-        // Demo fallback function if Supabase bucket doesn't have current day data yet
-        function loadMockData() {
-            const ymd = formatDateToYYYYMMDD(selectedQueryDate);
-            const iso = formatDateToISO(selectedQueryDate);
-
-            tab1Data = [
-                { date: iso, warehouse: 'MA', materialId: 'M1001-A', unit: 'EA', source: 'D' },
-                { date: iso, warehouse: 'MA', materialId: 'M1001-A', unit: 'EA', source: 'E' },
-                { date: iso, warehouse: 'GA', materialId: 'M1002-B', unit: 'BOX', source: 'D' },
-                { date: iso, warehouse: 'KA', materialId: 'M1001-A', unit: 'EA', source: 'E' }
-            ];
-
-            tab2Data = [
-                { warehouse: 'MA', materialId: 'M1001-A', unit: 'EA', spec: '高壓鋼製閥門 1/2吋', delivery: 'Y', monthlyQty: '120', stockQty: '5', endDate: iso, reqNo: 'PO202607001', reqDate: iso, needDate: iso, onWayQty: '50', leadTime: '7', vendorId: 'V8001' },
-                { warehouse: 'GA', materialId: 'M1002-B', unit: 'BOX', spec: '精密工業軸承 #6204', delivery: 'N', monthlyQty: '300', stockQty: '12', endDate: iso, reqNo: 'PO202607002', reqDate: iso, needDate: iso, onWayQty: '100', leadTime: '5', vendorId: 'V8002' }
-            ];
-
-            tab3Data = [
-                { reqNo: 'PO202607001', batch: '01', item: '1', materialId: 'M1001-A', unit: 'EA', warehouse: 'MA', vendorId: 'V8001', reqDate: iso, promiseDate: iso, reqQty: '50', ordQty: '50', delivQty: '0', phone: '02-23456789', fax: '02-23456780', vendorShort: '台灣精密工業', dept: '資材部' },
-                { reqNo: 'PO202607002', batch: '01', item: '1', materialId: 'M1002-B', unit: 'BOX', warehouse: 'GA', vendorId: 'V8002', reqDate: iso, promiseDate: iso, reqQty: '100', ordQty: '100', delivQty: '0', phone: '03-98765432', fax: '03-98765431', vendorShort: '聯發機械配件', dept: '資材部' }
-            ];
-
-            document.getElementById('fileStatus').innerHTML = '';
-            addFileBadge(`SHORT25D_${ymd}.txt`, '25D');
-            addFileBadge(`MA_G5404_${ymd}.txt`, 'G5404');
-            addFileBadge(`ONWAYPURHGA_${ymd}.txt`, 'OW-GA');
-
-            updateStatusBadge('success', '示範模式');
-            document.getElementById('syncDetailText').textContent = `已成功載入 ${iso} 的展示範例資料！可直接切換頁籤與測試匯出。`;
-            renderAllTabs();
+        function togglePasswordVisibility() {
+            const pwdInput = document.getElementById('loginPassword');
+            pwdInput.type = pwdInput.type === 'password' ? 'text' : 'password';
         }
 
-        window.onload = function () {
+        function handleStep1(event) {
+            if (event) event.preventDefault();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const errorBox = document.getElementById('loginError');
+
+            if (!username || !password) {
+                document.getElementById('loginErrorMsg').textContent = '請輸入帳號及密碼！';
+                errorBox.classList.remove('hidden');
+                return;
+            }
+
+            if (username === 'stock' && password === 'stock') {
+                errorBox.classList.add('hidden');
+                document.getElementById('step1Form').classList.add('hidden');
+                document.getElementById('step2Form').classList.remove('hidden');
+                document.getElementById('loginTitle').textContent = '選擇單位與人員姓名';
+                document.getElementById('loginSubtitle').textContent = '步驟 2/2：請選擇您的所屬單位與姓名(如未找到姓名則需補建檔)';
+                
+                fetchAllowedUsers();
+            } else {
+                document.getElementById('loginErrorMsg').textContent = '帳號或密碼錯誤，請再試一次！';
+                errorBox.classList.remove('hidden');
+            }
+        }
+
+        function goToStep1() {
+            document.getElementById('step2Form').classList.add('hidden');
+            document.getElementById('step1Form').classList.remove('hidden');
+            document.getElementById('loginTitle').textContent = '每日缺貨資料螢幕登入';
+            document.getElementById('loginSubtitle').textContent = '請輸入帳號密碼以存取報表系統';
+            const errorBox = document.getElementById('loginError');
+            if (errorBox) errorBox.classList.add('hidden');
+        }
+
+        function handleStep2(event) {
+            if (event) event.preventDefault();
+            const dept = document.getElementById('userDepartment').value;
+            const name = document.getElementById('userFullName').value.trim();
+            const errorBox = document.getElementById('loginError');
+
+            if (!dept || !name) {
+                document.getElementById('loginErrorMsg').textContent = '請選擇服務單位並輸入您的姓名！';
+                errorBox.classList.remove('hidden');
+                return;
+            }
+
+            errorBox.classList.add('hidden');
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainDashboard').classList.remove('hidden');
+
+            const displayUser = `${dept}-${name}`;
+            document.getElementById('currentUserName').textContent = displayUser;
+
+            sessionStorage.setItem('isLoggedIn', 'true');
+            sessionStorage.setItem('loggedInUser', 'stock');
+            sessionStorage.setItem('userDepartment', dept);
+            sessionStorage.setItem('userFullName', name);
+
             initDateDisplay();
-            // Automatically attempt fetching from Supabase on load
             fetchTodayDataFromSupabase();
+        }
+
+        function handleLogout() {
+            sessionStorage.removeItem('isLoggedIn');
+            sessionStorage.removeItem('loggedInUser');
+            sessionStorage.removeItem('userDepartment');
+            sessionStorage.removeItem('userFullName');
+
+            document.getElementById('mainDashboard').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('userDepartment').value = '';
+            document.getElementById('userFullName').value = '';
+            goToStep1();
+        }
+
+        window.onload = function() {
+            initDateDisplay();
+            fetchAllowedUsers();
+
+            if (sessionStorage.getItem('isLoggedIn') === 'true') {
+                const dept = sessionStorage.getItem('userDepartment') || '';
+                const name = sessionStorage.getItem('userFullName') || sessionStorage.getItem('loggedInUser') || 'stock';
+                const displayUser = (dept && name) ? `${dept}-${name}` : name;
+
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainDashboard').classList.remove('hidden');
+                document.getElementById('currentUserName').textContent = displayUser;
+                fetchTodayDataFromSupabase();
+            }
         };
     </script>
 </body>
