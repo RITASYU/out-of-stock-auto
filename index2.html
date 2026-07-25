@@ -238,16 +238,10 @@
 
 <!-- JavaScript 邏輯程式碼 -->
 <script>
-    // 修正後的複製函式
-    function copyMaterialId(text, event) {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        document.body.appendChild(textArea);
-        textArea.select();
+    // 1. 現代化且穩定的複製函式（支援所有現代瀏覽器與 HTTPS/Localhost）
+    async function copyMaterialId(text, event) {
         try {
-            document.execCommand('copy');
+            await navigator.clipboard.writeText(text);
             const el = event.currentTarget;
             let tip = el.querySelector('.copy-tip');
             if (!tip) {
@@ -259,10 +253,11 @@
             }
         } catch (err) {
             console.error('複製失敗', err);
+            alert('複製失敗，您的瀏覽器可能不支援自動複製功能');
         }
-        document.body.removeChild(textArea);
     }
 
+    // 2. 範例資料載入（若未來改接 Supabase，請確保你的動態組裝程式碼也有帶入下面材料編號的 HTML 結構）
     function loadSampleData() {
         const sampleData = [
             { 補充日期: "2026/03/30", 供應庫: "25D", 材料編號: "M1234567", 品名規格: "醫療用口罩 (滅菌)", 單位: "盒", 缺貨次數: 3, 補充類別: "常態", 備註: "急需補庫", 請購案號: "P115001", 廠商簡稱: "某某科技", 電話: "02-12345678" },
@@ -275,8 +270,10 @@
                 <tr class="hover:bg-gray-50 border-b border-gray-100">
                     <td class="px-4 py-2.5">${row.補充日期}</td>
                     <td class="px-4 py-2.5">${row.供應庫}</td>
+                    <!-- 💡 關鍵：請確保從 Supabase 抓資料組合表格時，材料編號欄位也要長這樣 -->
                     <td class="px-4 py-2.5 font-mono font-medium text-indigo-600 cursor-pointer relative" 
-                        onclick="copyMaterialId('${row.材料編號}', event)">
+                        onclick="copyMaterialId('${row.材料編號}', event)" 
+                        title="點擊複製材料編號">
                         ${row.材料編號}
                     </td>
                     <td class="px-4 py-2.5">${row.品名規格}</td>
