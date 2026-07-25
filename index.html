@@ -272,17 +272,8 @@
         <div id="tab2" class="tab-content">
             <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
                 <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <h2 class="text-lg font-bold text-gray-800">在庫低於安全庫存資料</h2>
-                    <p class="text-xs text-gray-500 mt-0.5">重點提示：篩選用完日兩周內的資料，需優先處理</p>
+                    <h2 class="text-lg font-bold text-gray-800">在庫低於安全庫存分析 (G5404 合併)</h2>
                     <div class="flex flex-wrap items-center gap-2">
-
-                        <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
-                            <span class="text-gray-600 font-semibold">配合交貨:</span>
-                            <select id="batchFilterSelect" onchange="renderTab3()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
-                                <option value="ALL">全部</option>
-                            </select>
-                        </div>
-                        
                         <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2 py-1.5 text-xs shadow-sm">
                             <span class="text-gray-600 font-semibold">用完日:</span>
                             <select id="endDateFilterSelect" onchange="renderTab2()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
@@ -329,8 +320,7 @@
         <div id="tab3" class="tab-content">
             <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
                 <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <h2 class="text-lg font-bold text-gray-800">在途資料彙總</h2>
-                    <p class="text-xs text-gray-500 mt-0.5">重點提示：(1)批號XX 且 訂購別為02，請注意是否附圖 (2)批號XX 且 訂購別為03，請注意是否調撥</p>
+                    <h2 class="text-lg font-bold text-gray-800">在途資料彙總 (OnWayPurh)</h2>
                     <div class="flex flex-wrap items-center gap-2">
                         <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
                             <span class="text-gray-600 font-semibold">批號:</span>
