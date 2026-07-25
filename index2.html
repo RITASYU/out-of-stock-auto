@@ -236,31 +236,76 @@
             </div>
         </div>
 
-<!-- JavaScript 邏輯與點擊複製功能 -->
-     // 修正後的複製函式
-        function copyMaterialId(text, event) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.position = "fixed";
-            textArea.style.left = "-9999px";
-            document.body.appendChild(textArea);
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                const el = event.currentTarget;
-                let tip = el.querySelector('.copy-tip');
-                if (!tip) {
-                    tip = document.createElement('span');
-                    tip.className = 'copy-tip ml-2 text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-semibold';
-                    tip.innerText = '已複製！';
-                    el.appendChild(tip);
-                    setTimeout(() => tip.remove(), 1200);
-                }
-            } catch (err) {
-                console.error('複製失敗', err);
+<!-- JavaScript 邏輯程式碼 -->
+<script>
+    // 修正後的複製函式
+    function copyMaterialId(text, event) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            const el = event.currentTarget;
+            let tip = el.querySelector('.copy-tip');
+            if (!tip) {
+                tip = document.createElement('span');
+                tip.className = 'copy-tip ml-2 text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-semibold';
+                tip.innerText = '已複製！';
+                el.appendChild(tip);
+                setTimeout(() => tip.remove(), 1200);
             }
-            document.body.removeChild(textArea);
+        } catch (err) {
+            console.error('複製失敗', err);
         }
+        document.body.removeChild(textArea);
+    }
+
+    function loadSampleData() {
+        const sampleData = [
+            { 補充日期: "2026/03/30", 供應庫: "25D", 材料編號: "M1234567", 品名規格: "醫療用口罩 (滅菌)", 單位: "盒", 缺貨次數: 3, 補充類別: "常態", 備註: "急需補庫", 請購案號: "P115001", 廠商簡稱: "某某科技", 電話: "02-12345678" },
+            { 補充日期: "2026/03/29", 供應庫: "25E", 材料編號: "M9876543", 品名規格: "不織布隔離衣", 單位: "件", 缺貨次數: 5, 補充類別: "專案", 備註: "", 請購案號: "P115002", 廠商簡稱: "健康實業", 電話: "04-87654321" }
+        ];
+
+        let htmlRows = '';
+        sampleData.forEach((row) => {
+            htmlRows += `
+                <tr class="hover:bg-gray-50 border-b border-gray-100">
+                    <td class="px-4 py-2.5">${row.補充日期}</td>
+                    <td class="px-4 py-2.5">${row.供應庫}</td>
+                    <td class="px-4 py-2.5 font-mono font-medium text-indigo-600 cursor-pointer relative" 
+                        onclick="copyMaterialId('${row.材料編號}', event)">
+                        ${row.材料編號}
+                    </td>
+                    <td class="px-4 py-2.5">${row.品名規格}</td>
+                    <td class="px-4 py-2.5">${row.單位}</td>
+                    <td class="px-4 py-2.5 text-center">${row.缺貨次數}</td>
+                    <td class="px-4 py-2.5 text-center">${row.補充類別}</td>
+                    <td class="px-4 py-2.5 text-center">${row.備註}</td>
+                    <td class="px-4 py-2.5 text-indigo-700">${row.請購案號}</td>
+                    <td class="px-4 py-2.5 text-indigo-700">${row.廠商簡稱}</td>
+                    <td class="px-4 py-2.5 text-indigo-700">${row.電話}</td>
+                </tr>`;
+        });
+        document.getElementById('resultBodyTab1').innerHTML = htmlRows;
+    }
+
+    function clearData(tabId) {
+        if (tabId === 'tab1') {
+            document.getElementById('resultBodyTab1').innerHTML = `<tr><td colspan="11" class="px-6 py-10 text-center text-gray-400 italic">資料已清空。</td></tr>`;
+        }
+    }
+
+    function exportCSV(tabId) {
+        console.log("匯出功能已觸發", tabId);
+    }
+
+    window.onload = function() {
+        loadSampleData();
+    };
+</script>
 
 
         
