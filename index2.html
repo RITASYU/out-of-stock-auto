@@ -217,7 +217,7 @@
                             <tr class="bg-gray-100 text-gray-700 uppercase font-bold">
                                 <th class="px-4 py-3 border-b">補充日期</th>
                                 <th class="px-4 py-3 border-b">供應庫</th>
-                                <th class="px-4 py-3 border-b">材料編號 <span class="text-gray-400 font-normal">(點擊複製)</span></th>
+                                <th class="px-4 py-3 border-b">材料編號</span></th>
                                 <th class="px-4 py-3 border-b">品名規格</th>
                                 <th class="px-4 py-3 border-b">單位</th>
                                 <th class="px-4 py-3 border-b text-center">缺貨次數</th>
@@ -237,10 +237,16 @@
         </div>
 
 <!-- JavaScript 邏輯與點擊複製功能 -->
-    <script>
-        // 點擊材料編號複製的共用函式
+     // 修正後的複製函式
         function copyMaterialId(text, event) {
-            navigator.clipboard.writeText(text).then(() => {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
                 const el = event.currentTarget;
                 let tip = el.querySelector('.copy-tip');
                 if (!tip) {
@@ -250,58 +256,11 @@
                     el.appendChild(tip);
                     setTimeout(() => tip.remove(), 1200);
                 }
-            }).catch(err => {
+            } catch (err) {
                 console.error('複製失敗', err);
-            });
+            }
+            document.body.removeChild(textArea);
         }
-
-        // 模擬載入資料並渲染表格的範例函式（你可以替換成你原本取得資料的邏輯）
-        function loadSampleData() {
-            const sampleData = [
-                { 補充日期: "2026/03/30", 供應庫: "25D", 材料編號: "M1234567", 品名規格: "醫療用口罩 (滅菌)", 單位: "盒", 缺貨次數: 3, 補充類別: "常態", 備註: "急需補庫", 請購案號: "P115001", 廠商簡稱: "某某科技", 電話: "02-12345678" },
-                { 補充日期: "2026/03/29", 供應庫: "25E", 材料編號: "M9876543", 品名規格: "不織布隔離衣", 單位: "件", 缺貨次數: 5, 補充類別: "專案", 備註: "", 請購案號: "P115002", 廠商簡稱: "健康實業", 電話: "04-87654321" }
-            ];
-
-            let htmlRows = '';
-            sampleData.forEach((row) => {
-                htmlRows += `
-                    <tr class="hover:bg-gray-50 border-b border-gray-100">
-                        <td class="px-4 py-2.5">${row.補充日期}</td>
-                        <td class="px-4 py-2.5">${row.供應庫}</td>
-                        <td class="px-4 py-2.5 font-mono font-medium text-indigo-600 cursor-pointer select-none" 
-                            onclick="copyMaterialId('${row.材料編號}', event)" 
-                            title="點擊直接複製材料編號">
-                            ${row.材料編號}
-                        </td>
-                        <td class="px-4 py-2.5">${row.品名規格}</td>
-                        <td class="px-4 py-2.5">${row.單位}</td>
-                        <td class="px-4 py-2.5 text-center">${row.缺貨次數}</td>
-                        <td class="px-4 py-2.5 text-center">${row.補充類別}</td>
-                        <td class="px-4 py-2.5 text-center">${row.備註}</td>
-                        <td class="px-4 py-2.5 text-indigo-700">${row.請購案號}</td>
-                        <td class="px-4 py-2.5 text-indigo-700">${row.廠商簡稱}</td>
-                        <td class="px-4 py-2.5 text-indigo-700">${row.電話}</td>
-                    </tr>
-                `;
-            });
-            document.getElementById('resultBodyTab1').innerHTML = htmlRows;
-        }
-
-        // 頁面載入後自動帶入測試資料（你可以註解掉這行，改用你系統原本呼叫資料的函式）
-        window.onload = function() {
-            loadSampleData();
-        };
-
-        function clearData(tabId) {
-            document.getElementById('resultBodyTab1').innerHTML = `<tr><td colspan="11" class="px-6 py-10 text-center text-gray-400 italic">資料已清空。</td></tr>`;
-        }
-
-        function exportCSV(tabId) {
-            alert("匯出功能示範");
-        }
-    </script>
-
-
 
 
         
