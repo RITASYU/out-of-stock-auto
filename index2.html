@@ -1642,8 +1642,9 @@ const rowsHTML = sortedData.map(row => {
             material_id: row.materialId, // ✅ 修正拼寫為 material_id
             report_date: normDate,
             status: '未處理',
-            note: '',
+            notes: '',
             updated_by: '系統自動預填',
+            created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
         };
         
