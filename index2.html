@@ -1657,6 +1657,9 @@
                 } else if (status === '03調撥') {
                     statusBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100';
                     statusIcon = '🔄';
+                } else if (status === '異常事項') { // <--- 新增這段
+                    statusBadgeClass = 'bg-red-100 text-red-800 border-red-300 hover:bg-red-200';
+                    statusIcon = '🔥';
                 } else if (status === '其他(詳說明)') {
                     statusBadgeClass = 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200';
                     statusIcon = '💬';
