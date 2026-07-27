@@ -1673,16 +1673,25 @@
                     statusDisplayText += ` (${statusObj.handler})`;
                 }
 
-                // 設定狀態按鈕的滑鼠提示（Tooltip）文字
+               // 決定 Tooltip 要顯示的文字內容
                 const tooltipText = statusObj.inherited 
                     ? `[沿用自 ${statusObj.inheritedDate} 紀錄] ${statusObj.note ? '說明: ' + statusObj.note : '點擊更新今日處理進度'}`
                     : (statusObj.note ? '說明: ' + statusObj.note : '點擊更新處理進度');
 
-                // 產生狀態互動按鈕 HTML
+                // 產生帶有美化自訂 Tooltip 的狀態按鈕 HTML
                 const statusBtn = `
-                    <button onclick="openProcessStatusModal('${itemKey}', '${row.warehouse}', '${row.materialId}', '${normDate}')" title="${tooltipText}" class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition duration-150 inline-flex items-center gap-1 cursor-pointer ${statusBadgeClass}">
-                        <span class="max-w-[150px] truncate">${statusDisplayText}</span>
-                    </button>
+                    <div class="relative group inline-block">
+                        <button onclick="openProcessStatusModal('${itemKey}', '${row.warehouse}', '${row.materialId}', '${normDate}')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition duration-150 inline-flex items-center gap-1 cursor-pointer ${statusBadgeClass}">
+                            <span class="max-w-[150px] truncate">${statusDisplayText}</span>
+                        </button>
+                        
+                        <!-- 自訂圓角、陰影的精美浮動提示框 -->
+                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 w-max max-xs px-3 py-1.5 text-xs font-normal text-white bg-gray-900/95 rounded-xl shadow-xl backdrop-blur-sm pointer-events-none transition-all">
+                            ${tooltipText}
+                            <!-- 小箭頭裝飾 -->
+                            <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-solid border-t-gray-900 border-t-4 border-x-transparent border-x-4 border-b-0"></div>
+                        </div>
+                    </div>
                 `;
 
                 // 若數量大於 10 則使用醒目顏色標示
