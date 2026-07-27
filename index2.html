@@ -1624,58 +1624,59 @@
             const selectedVendor = document.getElementById('vendorFilterSelect')?.value || 'ALL';
 
 /* STREAMING_CHUNK:更新渲染邏輯以包含自動初始化... */
-            // 逐筆生成表格列（tr）的 HTML 內容
-            const rowsHTML = sortedData.map(row => {
-                const normDate = normalizeDateToISO(row.date);
+// === 1. 先在外面處理好所有需要自動初始化的資料 ===
+const newEntries = [];
+
+const rowsHTML = sortedData.map(row => {
+    const normDate = normalizeDateToISO(row.date);
+    
+    const hasHistory = statusHistoryList.some(item => 
+        item.warehouse === row.warehouse && 
+        item.materialId === row.materialId && 
+        item.reportDate === normDate
+    );
+
+    if (!hasHistory) {
+        const newEntry = {
+            warehouse: row.warehouse,
+            material_id: row.materialId, // ✅ 修正拼寫為 material_id
+            report_date: normDate,
+            status: '未處理',
+            note: '',
+            updated_by: '系統自動預填',
+            updated_at: new Date().toISOString()
+        };
+        
+        // 更新記憶體清單
+        statusHistoryList.push(newEntry);
+        // 收集起來準備批次寫入
+        newEntries.push(newEntry);
+    }
+
+    const statusObj = getStatusForMaterial(row.warehouse, row.materialId, normDate);
+    const status = statusObj.status || '未處理';
+    const onWay = findOnWayInfo(row.materialId, row.warehouse);
+    const vendorShort = (onWay.vendorShort && onWay.vendorShort.trim() !== '' && onWay.vendorShort !== '-') ? onWay.vendorShort.trim() : '尚未訂購';
+
+    // 回傳你的 tr HTML...
+    return `<tr>...</tr>`; 
+});
+
+// === 2. 在渲染完成後，批次寫入資料庫（避免迴圈發送多次請求） ===
+if (newEntries.length > 0) {
+    (async () => {
+        try {
+            const { error } = await supabaseClient
+                .from('out_of_stock_items')
+                .insert(newEntries); // 批次插入
                 
-                // --- 【自動初始化邏輯】檢查並補入系統預設狀態 ---
-                const hasHistory = statusHistoryList.some(item => 
-                    item.warehouse === row.warehouse && 
-                    item.materialId === row.materialId && 
-                    item.reportDate === normDate
-                );
-
-                if (!hasHistory) {
-                    const newEntry = {
-                        warehouse: row.warehouse,
-                        materia_id: row.materialId,
-                        report_date: normDate,
-                        status: '未處理',
-                        note: '',
-                        updated_by: '系統自動預填',
-                        updated_at: new Date().toISOString()
-                    };
-                    
-                    // 1. 更新記憶體清單避免重複渲染
-                    statusHistoryList.push(newEntry);
-                    
-                    // 2. 執行自動寫入 Supabase
-                    (async () => {
-                        try {
-                            // 先檢查資料庫是否真的沒有 (防禦性檢查)
-                            const { data: existingRecords } = await supabaseClient
-                                .from('out_of_stock_items')
-                                .select('id')
-                                .eq('warehouse', row.warehouse)
-                                .eq('material_id', row.materialId)
-                                .eq('report_date', normDate);
-
-                            if (!existingRecords || existingRecords.length === 0) {
-                                await supabaseClient
-                                    .from('out_of_stock_items')
-                                    .insert([newEntry]);
-                                console.log(`[系統] 已自動初始化狀態: ${row.materialId}`);
-                            }
-                        } catch (err) {
-                            console.error("初始化寫入失敗:", err);
-                        }
-                    })();
-                }
-                const statusObj = getStatusForMaterial(row.warehouse, row.materialId, normDate);
-                const status = statusObj.status || '未處理';
-                const onWay = findOnWayInfo(row.materialId, row.warehouse);
-                const vendorShort = (onWay.vendorShort && onWay.vendorShort.trim() !== '' && onWay.vendorShort !== '-') ? onWay.vendorShort.trim() : '尚未訂購';
-
+            if (error) throw error;
+            console.log(`[系統] 已成功批次初始化 ${newEntries.length} 筆狀態`);
+        } catch (err) {
+            console.error("批次初始化寫入失敗:", err);
+        }
+    })();
+}
                 return { row, status, statusObj, normDate, vendorShort };
             }).filter(({ status, vendorShort }) => {
                 // 依據「處理進度」與「供應商」雙重條件過濾
