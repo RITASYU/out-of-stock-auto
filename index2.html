@@ -218,7 +218,7 @@
         </div>
     </div>
 
-<!-- ========================================================= -->
+       <!-- ========================================================= -->
         <!-- Supabase Data Sync Banner (資料自動擷取狀態控制面板) -->
         <!-- ========================================================= -->
         <!-- 同步狀態橫幅外層：白色背景、圓角、陰影、邊框，支援響應式垂直與水平排列 -->
@@ -315,7 +315,7 @@
             </button>
         </div>
 
-<!-- ========================================================= -->
+        <!-- ========================================================= -->
         <!-- Tab 1: 缺貨頻次分析 內容區塊 (預設顯示 active) -->
         <!-- ========================================================= -->
         <div id="tab1" class="tab-content active">
@@ -339,6 +339,14 @@
         <option value="03調撥">03調撥</option>
         <option value="異常事項">異常事項</option>
         <option value="其他(詳說明)">其他(詳說明)</option>
+    </select>
+</div>
+<!-- Tab 1 廠商簡稱篩選下拉選單 -->
+<div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
+    <span class="text-gray-600 font-semibold">廠商:</span>
+    <select id="vendorFilterSelect" onchange="renderTab1()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
+        <option value="ALL">全部廠商</option>
+        <!-- 選項會由 JavaScript 動態填入 -->
     </select>
 </div>
                         <button onclick="clearData('tab1')" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300 font-medium">清空</button>
@@ -1578,28 +1586,62 @@
                 }
             });
 
-            // 取得目前的處理進度篩選條件
+// ==================== 1. 動態生成供應商下拉選單選項 ====================
+            const vendorSelectEl = document.getElementById('vendorFilterSelect');
+            if (vendorSelectEl) {
+                const currentSelectedVendor = vendorSelectEl.value || 'ALL';
+                // 蒐集所有不重複且有效的供應商簡稱
+                const uniqueVendors = new Set();
+                sortedData.forEach(row => {
+                    const onWay = findOnWayInfo(row.materialId, row.warehouse);
+                    const vShort = onWay.vendorShort;
+                    if (vShort && vShort.trim() !== '' && vShort !== '-') {
+                        uniqueVendors.add(vShort.trim());
+                    }
+                });
+                // 排序供應商名稱
+                const sortedVendors = Array.from(uniqueVendors).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+
+                // 重新組裝下拉選單 HTML（保留「全部供應商」與「尚未訂購」等特殊狀態若有需要）
+                let vendorOptionsHTML = `<option value="ALL">全部供應商</option>`;
+                vendorOptionsHTML += `<option value="尚未訂購">尚未訂購</option>`; // 可選：把未訂購也當作一個選項
+                sortedVendors.forEach(v => {
+                    const selectedAttr = (currentSelectedVendor === v) ? 'selected' : '';
+                    vendorOptionsHTML += `<option value="${v}" ${selectedAttr}>${v}</option>`;
+                });
+                
+                // 如果原本選的選項已經不在清單中，重設為 ALL
+                vendorSelectEl.innerHTML = vendorOptionsHTML;
+                if (currentSelectedVendor !== 'ALL' && currentSelectedVendor !== '尚未訂購' && !uniqueVendors.has(currentSelectedVendor)) {
+                    vendorSelectEl.value = 'ALL';
+                } else {
+                    vendorSelectEl.value = currentSelectedVendor;
+                }
+            }
+
+            // 取得目前的篩選條件（處理進度 & 供應商）
             const selectedProgress = document.getElementById('progressFilterSelect')?.value || 'ALL';
+            const selectedVendor = document.getElementById('vendorFilterSelect')?.value || 'ALL';
 
             // 逐筆生成表格列（tr）的 HTML 內容
             const rowsHTML = sortedData.map(row => {
                 const normDate = normalizeDateToISO(row.date);
-                
-                // 取得該材料目前的處理狀態物件（先取得以便進行進度篩選）
                 const statusObj = getStatusForMaterial(row.warehouse, row.materialId, normDate);
                 const status = statusObj.status || '未處理';
+                const onWay = findOnWayInfo(row.materialId, row.warehouse);
+                const vendorShort = (onWay.vendorShort && onWay.vendorShort.trim() !== '' && onWay.vendorShort !== '-') ? onWay.vendorShort.trim() : '尚未訂購';
 
-                return { row, status, statusObj, normDate };
-            }).filter(({ status }) => {
-                // 依據「處理進度」下拉選單過濾
-                if (selectedProgress === 'ALL') return true;
-                return status === selectedProgress;
+                return { row, status, statusObj, normDate, vendorShort };
+            }).filter(({ status, vendorShort }) => {
+                // 依據「處理進度」與「供應商」雙重條件過濾
+                const matchProgress = (selectedProgress === 'ALL' || status === selectedProgress);
+                const matchVendor = (selectedVendor === 'ALL' || vendorShort === selectedVendor);
+                return matchProgress && matchVendor;
             }).map(({ row, status, statusObj, normDate }) => {
                 const isRepeatedAcrossSet = materialTotalCountMap.get(row.materialId) > row.count;
                 const spec = findSpecByMaterialId(row.materialId);
                 const orderDept = findOrderDept(row.warehouse, row.materialId);
                 
-                // 判斷備註標籤內容與樣式
                 let remark = '-';
                 if (isRepeatedAcrossSet) {
                     remark = '<span class="text-red-600 bg-red-50 px-1.5 py-0.5 rounded font-semibold">多庫別</span>';
@@ -1609,13 +1651,11 @@
                 
                 const onWay = findOnWayInfo(row.materialId, row.warehouse);
 
-                // 處理請購案號顯示與標籤樣式
                 const hasReqNo = onWay.reqNo && onWay.reqNo !== '-' && onWay.reqNo.trim() !== '';
                 const reqNoDisplay = hasReqNo 
                     ? `<span class="font-mono text-indigo-700">${onWay.reqNo}</span>`
                     : `<span class="bg-green-600 text-white font-bold px-2 py-0.5 rounded shadow-sm inline-block">無請購案號</span>`;
 
-                // 處理供應商顯示與重複狀態判斷
                 const hasVendor = onWay.vendorShort && onWay.vendorShort !== '-' && onWay.vendorShort.trim() !== '';
                 const isVendorDuplicate = hasVendor && (vendorCountMap.get(onWay.vendorShort) || 0) > 1;
                 
@@ -1630,7 +1670,6 @@
 
                 const itemKey = `${normDate}|${row.warehouse}|${row.materialId}`;
 
-                // 依據不同狀態設定按鈕樣式與圖示
                 let statusBadgeClass = 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200';
                 let statusIcon = '📝';
                 if (status === '未處理') {
@@ -1657,22 +1696,13 @@
                 } else if (status === '03調撥') {
                     statusBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100';
                     statusIcon = '🔄';
-                } else if (status === '異常事項') { // <--- 新增這段
+                } else if (status === '異常事項') {
                     statusBadgeClass = 'bg-red-100 text-red-800 border-red-300 hover:bg-red-200';
                     statusIcon = '🔥';
                 } else if (status === '其他(詳說明)') {
                     statusBadgeClass = 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200';
                     statusIcon = '💬';
                 }
-
-                // 組合狀態顯示文字（包含繼承或處理者資訊）
-                let statusDisplayText = `${statusIcon} ${status}`;
-                if (statusObj.inherited && statusObj.inheritedDate) {
-                    statusDisplayText += ` (沿用 ${statusObj.inheritedDate.slice(5)})`;
-                } else if (statusObj.handler) {
-                    statusDisplayText += ` (${statusObj.handler})`;
-                }
-
                // 決定 Tooltip 要顯示的文字內容
                 const tooltipText = statusObj.inherited 
                     ? `[沿用自 ${statusObj.inheritedDate} 紀錄] ${statusObj.note ? '說明: ' + statusObj.note : '點擊更新今日處理進度'}`
