@@ -1638,12 +1638,12 @@
                 if (!hasHistory) {
                     const newEntry = {
                         warehouse: row.warehouse,
-                        materialId: row.materialId,
-                        reportDate: normDate,
+                        materia_id: row.materialId,
+                        report_date: normDate,
                         status: '未處理',
                         note: '',
-                        handler: '系統自動預填',
-                        updatedAt: new Date().toISOString()
+                        updated_by: '系統自動預填',
+                        updated_at: new Date().toISOString()
                     };
                     
                     // 1. 更新記憶體清單避免重複渲染
