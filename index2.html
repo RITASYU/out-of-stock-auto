@@ -1703,6 +1703,13 @@
                     statusBadgeClass = 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200';
                     statusIcon = '💬';
                 }
+               // 組合狀態顯示文字（包含繼承或處理者資訊）
+                let statusDisplayText = `${statusIcon} ${status}`;
+                if (statusObj.inherited && statusObj.inheritedDate) {
+                    statusDisplayText += ` (沿用 ${statusObj.inheritedDate.slice(5)})`;
+                } else if (statusObj.handler) {
+                    statusDisplayText += ` (${statusObj.handler})`;
+                }
                // 決定 Tooltip 要顯示的文字內容
                 const tooltipText = statusObj.inherited 
                     ? `[沿用自 ${statusObj.inheritedDate} 紀錄] ${statusObj.note ? '說明: ' + statusObj.note : '點擊更新今日處理進度'}`
