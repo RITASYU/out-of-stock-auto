@@ -218,29 +218,42 @@
         </div>
     </div>
 
-        <!-- Supabase Data Sync Banner -->
+<!-- ========================================================= -->
+        <!-- Supabase Data Sync Banner (資料自動擷取狀態控制面板) -->
+        <!-- ========================================================= -->
+        <!-- 同步狀態橫幅外層：白色背景、圓角、陰影、邊框，支援響應式垂直與水平排列 -->
         <div class="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
+            <!-- 左側狀態資訊與圖示區塊 -->
             <div class="flex items-center gap-3 w-full md:w-auto">
+                <!-- 資料同步圖示外框 -->
                 <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
+                    <!-- 同步循環圖示 SVG -->
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                     </svg>
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
+                        <!-- 區塊標題 -->
                         <h3 class="font-bold text-gray-800 text-sm">資料自動擷取狀態</h3>
+                        <!-- 當前查詢日期徽章：動態顯示目前載入或查詢的資料日期 -->
                         <span id="targetDateBadge" class="bg-indigo-100 text-indigo-800 text-[11px] px-2 py-0.5 rounded font-mono font-medium">當前查詢日期: --</span>
                     </div>
+                    <!-- 同步詳細說明文字 -->
                     <p id="syncDetailText" class="text-xs text-gray-500 mt-0.5">自動連接 (daily-files) 讀取當天缺貨資料檔。</p>
                 </div>
             </div>
 
+            <!-- 右側控制項與動作按鈕群組區塊 (包含供應庫篩選、日期選擇與重新擷取按鈕) -->
             <div class="flex items-center gap-2 w-full md:w-auto justify-end shrink-0 flex-wrap">
+                <!-- 供應庫篩選下拉選單容器 -->
                 <div class="flex items-center gap-1.5 bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
+                    <!-- 篩選圖示 SVG -->
                     <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
                     </svg>
                     <span class="text-gray-600 font-semibold">供應庫:</span>
+                    <!-- 供應庫下拉選單：當選項改變時，觸發 renderAllTabs() 重新渲染所有分頁資料 -->
                     <select id="warehouseFilterSelect" onchange="renderAllTabs()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
                         <option value="ALL">全部庫別</option>
                         <option value="MA">MA 庫</option>
@@ -248,7 +261,11 @@
                         <option value="KA">KA 庫</option>
                     </select>
                 </div>
+
+                <!-- 日期挑選器：當日期變更時，觸發 changeQueryDate(this.value) 切換查詢目標日期 -->
                 <input type="date" id="queryDatePicker" onchange="changeQueryDate(this.value)" class="text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 text-gray-700 bg-gray-50">
+                
+                <!-- 重新擷取資料按鈕：點擊時觸發 fetchTodayDataFromSupabase() 強制從雲端同步最新資料 -->
                 <button onclick="fetchTodayDataFromSupabase()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -258,42 +275,80 @@
             </div>
         </div>
 
-        <!-- Loaded Files Badge List -->
+        <!-- ========================================================= -->
+        <!-- Loaded Files Badge List (已載入檔案狀態標籤清單) -->
+        <!-- ========================================================= -->
+        <!-- 檔案清單容器：動態顯示目前資料庫已成功載入的檔案項目 -->
         <div id="fileStatusContainer" class="mb-4 flex flex-wrap items-center gap-2 min-h-[28px]">
             <span class="text-xs font-semibold text-gray-400">當前資料庫載入檔案：</span>
             <div id="fileStatus" class="flex flex-wrap gap-2">
+                <!-- 預設提示文字 (尚未載入檔案時顯示) -->
                 <span class="text-xs text-gray-400 italic">尚未載入檔案</span>
             </div>
         </div>
 
+        <!-- ========================================================= -->
+        <!-- Error Message Alert Box (系統錯誤訊息提示框，預設隱藏) -->
+        <!-- ========================================================= -->
         <div id="errorMessage" class="mb-6 text-sm text-red-600 hidden bg-red-50 p-3 rounded-lg border border-red-200 flex justify-between items-center">
+            <!-- 錯誤訊息文字容器 -->
             <span id="errorText"></span>
+            <!-- 關閉錯誤訊息按鈕：點擊時將 errorMessage 元素加上 hidden 隱藏類別 -->
             <button onclick="document.getElementById('errorMessage').classList.add('hidden')" class="text-red-500 font-bold ml-2">&times;</button>
         </div>
 
-        <!-- Tab Navigation -->
+        <!-- ========================================================= -->
+        <!-- Tab Navigation (三大功能分頁切換按鈕導覽列) -->
+        <!-- ========================================================= -->
         <div class="flex border-b border-gray-200 mb-6 bg-white rounded-t-lg px-4 overflow-x-auto">
+            <!-- 分頁按鈕 1：缺貨頻次分析 (預設 active) -->
             <button onclick="switchTab('tab1')" id="btn-tab1" class="tab-btn active px-6 py-3 font-bold text-sm transition-all duration-200 whitespace-nowrap">
                 缺貨頻次分析 (25D/E)
             </button>
+            <!-- 分頁按鈕 2：在庫低於安全庫存分析 -->
             <button onclick="switchTab('tab2')" id="btn-tab2" class="tab-btn px-6 py-3 font-bold text-sm text-gray-500 transition-all duration-200 whitespace-nowrap">
                 在庫低於安全庫存分析 (G5404)
             </button>
+            <!-- 分頁按鈕 3：在途資料 -->
             <button onclick="switchTab('tab3')" id="btn-tab3" class="tab-btn px-6 py-3 font-bold text-sm text-gray-500 transition-all duration-200 whitespace-nowrap">
                 在途資料
             </button>
         </div>
 
-        <!-- Tab 1: 缺貨頻次分析 -->
+        <!-- ========================================================= -->
+        <!-- Tab 1: 缺貨頻次分析 內容區塊 (預設顯示 active) -->
+        <!-- ========================================================= -->
         <div id="tab1" class="tab-content active">
             <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+                <!-- 區塊標頭與操作按鈕群組 (清空、匯出) -->
                 <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                     <h2 class="text-lg font-bold text-gray-800">分析報告：缺貨頻次 (25D/E)</h2>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- 批號篩選下拉選單容器 -->
+                        <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
+                            <span class="text-gray-600 font-semibold">處理進度:</span>
+                            <!-- 批號篩選下拉選單：變更時觸發 renderTab1() 更新表格 -->
+                            <select id="batchFilterSelect" onchange="renderTab1()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
+                                <option value="ALL">全部</option>
+                            </select>
+                        </div>
                         <button onclick="clearData('tab1')" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300 font-medium">清空</button>
                         <button onclick="exportCSV('tab1')" class="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 font-medium shadow-sm">匯出</button>
                     </div>
-                </div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+                <!-- 表格捲動容器 -->
                 <div class="table-container max-h-[500px]">
                     <table class="w-full text-left border-collapse sticky-header text-xs">
                         <thead>
@@ -313,6 +368,7 @@
                                 <th class="px-4 py-3 border-b text-indigo-700">電話</th>
                             </tr>
                         </thead>
+                        <!-- 資料內容填入處 (由 JavaScript 動態載入) -->
                         <tbody id="resultBodyTab1" class="text-gray-600">
                             <tr><td colspan="13" class="px-6 py-10 text-center text-gray-400 italic">尚未取得 SHORT25D 或 SHORT25E 資料。</td></tr>
                         </tbody>
@@ -321,14 +377,18 @@
             </div>
         </div>
 
-        <!-- Tab 2: 在庫低於安全庫存分析 (G5404) -->
+        <!-- ========================================================= -->
+        <!-- Tab 2: 在庫低於安全庫存分析 (G5404) 內容區塊 (預設隱藏) -->
+        <!-- ========================================================= -->
         <div id="tab2" class="tab-content">
             <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
                 <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <h2 class="text-lg font-bold text-gray-800">在庫低於安全庫存分析 (G5404 合併)</h2>
                     <div class="flex flex-wrap items-center gap-2">
+                        <!-- 用完日篩選器容器 -->
                         <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2 py-1.5 text-xs shadow-sm">
                             <span class="text-gray-600 font-semibold">用完日:</span>
+                            <!-- 用完日篩選下拉選單：變更時觸發 renderTab2() 進行資料過濾 -->
                             <select id="endDateFilterSelect" onchange="renderTab2()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
                                 <option value="ALL">全部</option>
                                 <option value="7D">一週內</option>
@@ -369,20 +429,26 @@
             </div>
         </div>
 
-        <!-- Tab 3: 在途資料 -->
+        <!-- ========================================================= -->
+        <!-- Tab 3: 在途資料 內容區塊 (預設隱藏) -->
+        <!-- ========================================================= -->
         <div id="tab3" class="tab-content">
             <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
                 <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <h2 class="text-lg font-bold text-gray-800">在途資料彙總 (OnWayPurh)</h2>
                     <div class="flex flex-wrap items-center gap-2">
+                        <!-- 批號篩選下拉選單容器 -->
                         <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
                             <span class="text-gray-600 font-semibold">批號:</span>
+                            <!-- 批號篩選下拉選單：變更時觸發 renderTab3() 更新表格 -->
                             <select id="batchFilterSelect" onchange="renderTab3()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
                                 <option value="ALL">全部批號</option>
                             </select>
                         </div>
+                        <!-- 訂購別篩選下拉選單容器 -->
                         <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
                             <span class="text-gray-600 font-semibold">訂購別:</span>
+                            <!-- 訂購別篩選下拉選單：變更時觸發 renderTab3() 更新表格 -->
                             <select id="orderDeptFilterSelect" onchange="renderTab3()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
                                 <option value="ALL">全部訂購別</option>
                             </select>
