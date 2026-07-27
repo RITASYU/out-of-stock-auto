@@ -1623,9 +1623,54 @@
             const selectedProgress = document.getElementById('progressFilterSelect')?.value || 'ALL';
             const selectedVendor = document.getElementById('vendorFilterSelect')?.value || 'ALL';
 
+/* STREAMING_CHUNK:更新渲染邏輯以包含自動初始化... */
             // 逐筆生成表格列（tr）的 HTML 內容
             const rowsHTML = sortedData.map(row => {
                 const normDate = normalizeDateToISO(row.date);
+                
+                // --- 【自動初始化邏輯】檢查並補入系統預設狀態 ---
+                const hasHistory = statusHistoryList.some(item => 
+                    item.warehouse === row.warehouse && 
+                    item.materialId === row.materialId && 
+                    item.reportDate === normDate
+                );
+
+                if (!hasHistory) {
+                    const newEntry = {
+                        warehouse: row.warehouse,
+                        materialId: row.materialId,
+                        reportDate: normDate,
+                        status: '未處理',
+                        note: '',
+                        handler: '系統自動預填',
+                        updatedAt: new Date().toISOString()
+                    };
+                    
+                    // 1. 更新記憶體清單避免重複渲染
+                    statusHistoryList.push(newEntry);
+                    
+                    // 2. 執行自動寫入 Supabase
+                    (async () => {
+                        try {
+                            // 先檢查資料庫是否真的沒有 (防禦性檢查)
+                            const { data: existingRecords } = await supabaseClient
+                                .from('out_of_stock_items')
+                                .select('id')
+                                .eq('warehouse', row.warehouse)
+                                .eq('material_id', row.materialId)
+                                .eq('report_date', normDate);
+
+                            if (!existingRecords || existingRecords.length === 0) {
+                                await supabaseClient
+                                    .from('out_of_stock_items')
+                                    .insert([newEntry]);
+                                console.log(`[系統] 已自動初始化狀態: ${row.materialId}`);
+                            }
+                        } catch (err) {
+                            console.error("初始化寫入失敗:", err);
+                        }
+                    })();
+                }
                 const statusObj = getStatusForMaterial(row.warehouse, row.materialId, normDate);
                 const status = statusObj.status || '未處理';
                 const onWay = findOnWayInfo(row.materialId, row.warehouse);
