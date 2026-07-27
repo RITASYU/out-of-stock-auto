@@ -324,18 +324,26 @@
                 <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                     <h2 class="text-lg font-bold text-gray-800">分析報告：缺貨頻次 (25D/E)</h2>
                     <div class="flex flex-wrap items-center gap-2">
-                        <!-- 處理進度篩選下拉選單容器 -->
-                        <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
-                            <span class="text-gray-600 font-semibold">處理進度:</span>
-                            <!-- 處理進度篩選下拉選單：變更時觸發 renderTab1() 更新表格 -->
-                            <select id="statusFilterSelectTab1" onchange="renderTab1()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
-                                <option value="ALL">全部</option>
-                            </select>
-                        </div>
+                        <!-- Tab 1 處理進度篩選下拉選單 -->
+<div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
+    <span class="text-gray-600 font-semibold">處理進度:</span>
+    <select id="progressFilterSelect" onchange="renderTab1()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
+        <option value="ALL">全部進度</option>
+        <option value="未處理">未處理</option>
+        <option value="已到貨入庫">已到貨入庫</option>
+        <option value="已洽供應商">已洽供應商</option>
+        <option value="尚未訂購">尚未訂購</option>
+        <option value="配合交貨">配合交貨</option>
+        <option value="無存管">無存管</option>
+        <option value="02附圖">02附圖</option>
+        <option value="03調撥">03調撥</option>
+        <option value="其他(詳說明)">其他(詳說明)</option>
+    </select>
+</div>
                         <button onclick="clearData('tab1')" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300 font-medium">清空</button>
                         <button onclick="exportCSV('tab1')" class="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 font-medium shadow-sm">匯出</button>
                     </div>
-                </div> <!-- <-- 補上這個原本遺漏的 div 結尾標籤 -->
+                </div> 
 
                 <!-- 表格捲動容器 -->
                 <div class="table-container max-h-[500px]">
@@ -556,15 +564,17 @@
         </div>
     </div>
 
-    <!-- ========================================================= -->
-    <!-- 📍 JavaScript 業務邏輯與資料流處理區塊                    -->
+<!-- ========================================================= -->
+    <!-- 📍 JavaScript 業務邏輯與資料流處理區塊                         -->
     <!-- ========================================================= -->
     <script>
+        // Supabase 資料庫連線設定與 API 金鑰常數
         const SUPABASE_URL = "https://oxuvvioaenzifebmuioi.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94dXZ2aW9hZW56aWZlYm11aW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MzE1NjYsImV4cCI6MjEwMDIwNzU2Nn0.SNk6UuvAMbxo0RvzxCfOLAfnn32jyZt0hFkoP0Lk7Vw";
-        const BUCKET_NAME = "daily-files";
-        const BASE_CSV_URL = "https://oxuvvioaenzifebmuioi.supabase.co/storage/v1/object/public/daily-files/base.csv";
+        const BUCKET_NAME = "daily-files"; // 儲存庫名稱
+        const BASE_CSV_URL = "https://oxuvvioaenzifebmuioi.supabase.co/storage/v1/object/public/daily-files/base.csv"; // 基礎 CSV 檔案公開網址
 
+        // 全域變數：分頁資料集、Supabase 用戶端實例、CSV 對應 Map 與允許的使用者清單
         let tab1Data = [];
         let tab2Data = [];
         let tab3Data = [];
@@ -572,19 +582,26 @@
         let baseCsvMap = new Map();
         let allowedUsersList = [];
 
+        /**
+         * 非同步取得允許操作的使用者清單（從 Supabase 的 allowed_users 資料表）
+         */
         async function fetchAllowedUsers() {
+            // 初始化 Supabase 用戶端，若失敗則中止
             if (!initSupabaseClient()) return;
             try {
+                // 從 allowed_users 資料表查詢所有資料
                 const { data, error } = await supabaseClient
                     .from('allowed_users')
                     .select('*');
 
+                // 若查詢發生錯誤，印出警告並改用預設的單位選項
                 if (error) {
                     console.warn('擷取 allowed_users 失敗，使用預設單位選單:', error);
                     useDefaultUserOptions();
                     return;
                 }
 
+                // 若成功取得資料，將其對應轉換為統一格式的物件陣列，並建立部門下拉選單
                 if (data && data.length > 0) {
                     allowedUsersList = data.map(row => ({
                         dept: row.department || row.dept || row.service_unit || row.unit || '其他單位',
@@ -595,47 +612,61 @@
                     useDefaultUserOptions();
                 }
             } catch (err) {
+                // 捕捉異常狀況，改用預設選項
                 console.warn('存取 allowed_users 異常:', err);
                 useDefaultUserOptions();
             }
         }
 
+        /**
+         * 填入部門（單位）下拉選單選項
+         */
         function populateDepartmentDropdown() {
             const deptSelect = document.getElementById('userDepartment');
             if (!deptSelect) return;
 
+            // 萃取出所有不重複且有效的部門名稱
             const depts = Array.from(new Set(allowedUsersList.map(u => u.dept))).filter(Boolean);
             
+            // 若無有效部門，則使用預設選項
             if (depts.length === 0) {
                 useDefaultUserOptions();
                 return;
             }
 
+            // 組合部門下拉選單的 HTML 字串，並進行排序
             let html = '<option value="">-- 請選擇單位 --</option>';
             depts.sort().forEach(dept => {
                 html += `<option value="${dept}">${dept}</option>`;
             });
             deptSelect.innerHTML = html;
             
+            // 觸發部門變更事件以連動姓名選單
             onDepartmentChange();
         }
 
+        /**
+         * 當部門下拉選單變更時觸發，用來連動更新對應的姓名選單
+         */
         function onDepartmentChange() {
             const selectedDept = document.getElementById('userDepartment').value;
             const nameSelect = document.getElementById('userFullName');
             if (!nameSelect) return;
 
+            // 若未選擇部門，重設姓名選單提示
             if (!selectedDept) {
                 nameSelect.innerHTML = '<option value="">-- 請先選擇單位 --</option>';
                 return;
             }
 
+            // 過濾出屬於該部門的使用者清單
             const filteredUsers = allowedUsersList.filter(u => u.dept === selectedDept);
             if (filteredUsers.length === 0) {
                 nameSelect.innerHTML = '<option value="">-- 無相符人員 --</option>';
                 return;
             }
 
+            // 建立對應的姓名選單選項 HTML
             let html = '<option value="">-- 請選擇姓名 --</option>';
             filteredUsers.forEach(u => {
                 html += `<option value="${u.name}">${u.name}</option>`;
@@ -643,6 +674,9 @@
             nameSelect.innerHTML = html;
         }
 
+        /**
+         * 當無法從資料庫取得使用者時，載入預設的單位與姓名選項
+         */
         function useDefaultUserOptions() {
             const deptSelect = document.getElementById('userDepartment');
             const nameSelect = document.getElementById('userFullName');
@@ -659,62 +693,83 @@
             }
         }
 
+        /**
+         * 非同步從遠端載入基礎對照表 CSV 檔案
+         */
         async function loadBaseCsv() {
             try {
                 const response = await fetch(BASE_CSV_URL);
                 if (response.ok) {
                     const text = await response.text();
-                    parseBaseCsv(text);
+                    parseBaseCsv(text); // 解析 CSV 內容
                 }
             } catch (err) {
                 console.warn("無法載入 base.csv:", err);
             }
         }
 
+        /**
+         * 處理 CSV 單行解析，正確處理引號包覆與逗號分隔的問題
+         * @param {string} line - CSV 的單行字串
+         * @returns {Array<string>} 切割後的欄位陣列
+         */
         function splitCsvLine(line) {
             const result = [];
             let cur = '';
-            let inQuotes = false;
+            let inQuotes = false; // 標記目前是否處於引號內部
             for (let i = 0; i < line.length; i++) {
                 const c = line[i];
                 if (c === '"') {
-                    inQuotes = !inQuotes;
+                    inQuotes = !inQuotes; // 切換引號狀態
                 } else if (c === ',' && !inQuotes) {
+                    // 若遇到逗號且不在引號內，代表一個欄位結束
                     result.push(cur.trim().replace(/^"|"$/g, ''));
                     cur = '';
                 } else {
                     cur += c;
                 }
             }
+            // 推入最後一個欄位
             result.push(cur.trim().replace(/^"|"$/g, ''));
             return result;
         }
 
+        /**
+         * 解析基礎 CSV 檔案文字內容，建立對應查詢對照表（Map）
+         * @param {string} text - CSV 完整文字內容
+         */
         function parseBaseCsv(text) {
             baseCsvMap.clear();
+            // 依照換行分割並過濾空白行
             const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
             if (lines.length < 2) return;
 
+            // 取得標題列並尋找對應欄位索引
             const headers = splitCsvLine(lines[0]);
             let whIdx = -1, matIdx = -1, deptIdx = -1;
 
             headers.forEach((h, idx) => {
                 const hUpper = h.toUpperCase();
+                // 尋找包含倉庫相關字眼的欄位索引
                 if (hUpper.includes("庫") || hUpper.includes("WAREHOUSE") || hUpper.includes("WH")) {
                     if (whIdx === -1) whIdx = idx;
                 }
+                // 尋找包含材料或料號相關字眼的欄位索引
                 if (hUpper.includes("材料") || hUpper.includes("料號") || hUpper.includes("MATERIAL")) {
                     if (matIdx === -1) matIdx = idx;
                 }
+                // 尋找包含部門或訂購相關字眼的欄位索引
                 if (hUpper.includes("訂購") || hUpper.includes("部門") || hUpper.includes("DEPT")) {
                     if (deptIdx === -1) deptIdx = idx;
                 }
             });
 
+            // 設定預設的欄位索引備用值
             if (whIdx === -1) whIdx = 0;
             if (matIdx === -1) matIdx = 1;
             if (deptIdx === -1 || deptIdx < 12) deptIdx = 12;
 
+            // 逐行讀取資料內容並建立對應對照（Key: 倉庫|料號, Value: 部門）
             for (let i = 1; i < lines.length; i++) {
                 const cols = splitCsvLine(lines[i]);
                 if (cols.length > Math.max(whIdx, matIdx, deptIdx)) {
@@ -728,25 +783,49 @@
             }
         }
 
+        /**
+         * 透過倉庫與材料編號尋找對應的訂購部門
+         * @param {string} warehouse - 倉庫代號/名稱
+         * @param {string} materialId - 材料編號
+         * @returns {string} 找到的部門名稱，若無則回傳 '-'
+         */
         function findOrderDept(warehouse, materialId) {
             if (!warehouse || !materialId) return '-';
             return baseCsvMap.get(`${warehouse}|${materialId}`) || '-';
         }
 
+        /**
+         * 將各式日期字串標準化轉換為 ISO 格式（YYYY-MM-DD）
+         * @param {string} dStr - 原始日期字串
+         * @returns {string} 標準化後的日期字串
+         */
         function normalizeDateToISO(dStr) {
             if (!dStr) return '';
+            // 將斜線或點取代為橫線
             let str = String(dStr).trim().replace(/\//g, '-').replace(/\./g, '-');
+            // 若為 8 位數且無橫線的純數字格式（如 YYYYMMDD），自動加上橫線
             if (str.length === 8 && !str.includes('-')) {
                 return `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`;
             }
             return str;
         }
 
+
+        
+// 狀態歷史記錄列表與目前正在編輯的狀態鍵值
         let statusHistoryList = []; 
         let currentEditingStatusKey = null;
 
+        /**
+         * 取得特定材料在指定日期的處理狀態（支援 10 天內的歷史回溯與繼承機制）
+         * @param {string} warehouse - 倉庫代號/名稱
+         * @param {string} materialId - 材料編號
+         * @param {string} dateStr - 查詢日期字串
+         * @returns {Object} 包含狀態、備註、處理者、是否繼承等屬性的物件
+         */
         function getStatusForMaterial(warehouse, materialId, dateStr) {
             const normDate = normalizeDateToISO(dateStr);
+            // 若缺乏必要參數或日期無效，回傳預設的「未處理」狀態
             if (!normDate || !warehouse || !materialId) {
                 return { status: '未處理', note: '', handler: '', inherited: false, inheritedDate: null };
             }
@@ -756,19 +835,23 @@
                 return { status: '未處理', note: '', handler: '', inherited: false, inheritedDate: null };
             }
 
+            // 計算 10 天的毫秒數，設定往前追溯的截止時間
             const tenDaysInMs = 10 * 24 * 60 * 60 * 1000;
             const cutoffTime = targetTime - tenDaysInMs;
 
+            // 從歷史紀錄中篩選出符合該倉庫、料號，且日期介於目標日期前 10 天到目標日期之間的候選資料
             const candidates = statusHistoryList.filter(item => {
                 if (item.warehouse !== warehouse || item.materialId !== materialId) return false;
                 const itemTime = new Date(item.reportDate).getTime();
                 return !isNaN(itemTime) && itemTime <= targetTime && itemTime >= cutoffTime;
             });
 
+            // 若找不到任何候選紀錄，回傳預設狀態
             if (candidates.length === 0) {
                 return { status: '未處理', note: '', handler: '', inherited: false, inheritedDate: null };
             }
 
+            // 將候選紀錄排序：依回報日期由新到舊排序；若日期相同，則依最後更新時間（updatedAt）由新到舊排序
             candidates.sort((a, b) => {
                 const tA = new Date(a.reportDate).getTime();
                 const tB = new Date(b.reportDate).getTime();
@@ -778,7 +861,9 @@
                 return uB - uA;
             });
 
+            // 取出排序後最新的一筆紀錄
             const latest = candidates[0];
+            // 判斷該筆最新紀錄是否為繼承自過去（即回報日期不等於目標查詢日期）
             const isInherited = latest.reportDate !== normDate;
 
             return {
@@ -790,55 +875,82 @@
             };
         }
 
+        /**
+         * 開啟處理進度編輯彈跳視窗（Modal），並帶入對應的物料與狀態資訊
+         * @param {string} key - 狀態識別鍵值
+         * @param {string} warehouse - 倉庫代號/名稱
+         * @param {string} materialId - 材料編號
+         * @param {string} date - 日期
+         */
         function openProcessStatusModal(key, warehouse, materialId, date) {
             currentEditingStatusKey = key;
             const normDate = normalizeDateToISO(date);
             const statusObj = getStatusForMaterial(warehouse, materialId, normDate);
 
+            // 將資料填入隱藏的表單欄位中以供後續儲存使用
             document.getElementById('modalWarehouse').value = warehouse || '';
             document.getElementById('modalMaterialId').value = materialId || '';
             document.getElementById('modalReportDate').value = normDate || '';
 
+            // 將資料填入介面顯示文字區塊
             document.getElementById('modalWarehouseDisplay').textContent = warehouse || '--';
             document.getElementById('modalMaterialDisplay').textContent = materialId || '--';
             document.getElementById('modalDateDisplay').textContent = normDate || '--';
 
+            // 設定狀態下拉選單數值
             const statusSelect = document.getElementById('modalStatus');
             if (statusSelect) statusSelect.value = statusObj.status || '未處理';
 
+            // 設定備註內容
             const noteInput = document.getElementById('modalNotes');
             if (noteInput) noteInput.value = statusObj.note || '';
 
+            // 設定處理人員欄位（優先帶入目前登入使用者的姓名）
             const handlerInput = document.getElementById('modalUpdatedBy');
             if (handlerInput) {
                 const currentName = sessionStorage.getItem('userFullName') || sessionStorage.getItem('loggedInUser') || '';
                 handlerInput.value = currentName || statusObj.handler || '';
             }
             
+            // 移除隱藏樣式以顯示彈跳視窗
             const modal = document.getElementById('progressModal');
             if (modal) modal.classList.remove('hidden');
         }
 
+        /**
+         * 關閉處理進度編輯彈跳視窗，並清空目前編輯的鍵值
+         */
         function closeProgressModal() {
             currentEditingStatusKey = null;
             const modal = document.getElementById('progressModal');
             if (modal) modal.classList.add('hidden');
         }
 
+        /**
+         * 顯示「無資料」提示彈跳視窗
+         */
         function showNoDataModal() {
             const modal = document.getElementById('noDataModal');
             if (modal) modal.classList.remove('hidden');
         }
 
+        /**
+         * 關閉「無資料」提示彈跳視窗
+         */
         function closeNoDataModal() {
             const modal = document.getElementById('noDataModal');
             if (modal) modal.classList.add('hidden');
         }
 
+        /**
+         * 非同步儲存處理進度表單資料（更新前端陣列並同步寫入 Supabase 資料庫）
+         * @param {Event} event - 提交事件物件
+         */
         async function handleSaveProgress(event) {
             if (event) event.preventDefault();
             if (!currentEditingStatusKey) return;
 
+            // 取得表單欄位中的資料
             const warehouse = document.getElementById('modalWarehouse').value;
             const materialId = document.getElementById('modalMaterialId').value;
             const rawReportDate = document.getElementById('modalReportDate').value;
@@ -853,10 +965,12 @@
             const updatedBy = handlerInput ? handlerInput.value.trim() : '';
 
             const nowIso = new Date().toISOString();
+            // 檢查前端歷史清單中是否已存在相同倉庫、料號與日期的紀錄
             const existingIdx = statusHistoryList.findIndex(
                 item => item.warehouse === warehouse && item.materialId === materialId && item.reportDate === reportDate
             );
 
+            // 建立新的狀態記錄物件
             const newRecord = {
                 reportDate,
                 warehouse,
@@ -867,15 +981,17 @@
                 updatedAt: nowIso
             };
 
+            // 若存在則進行覆蓋更新，否則新增至陣列中
             if (existingIdx >= 0) {
                 statusHistoryList[existingIdx] = newRecord;
             } else {
                 statusHistoryList.push(newRecord);
             }
 
+            // 若 Supabase 用戶端已初始化，則將資料同步寫入後端資料庫
             if (supabaseClient) {
                 const saveBtn = document.getElementById('saveProgressBtn');
-                if (saveBtn) saveBtn.disabled = true;
+                if (saveBtn) saveBtn.disabled = true; // 儲存時禁用按鈕防範重複點擊
 
                 try {
                     const payload = {
@@ -888,6 +1004,7 @@
                         updated_at: nowIso
                     };
 
+                    // 先查詢後端資料庫是否已有該筆紀錄存在
                     const { data: existingRecords, error: searchErr } = await supabaseClient
                         .from('out_of_stock_items')
                         .select('id')
@@ -897,18 +1014,21 @@
 
                     let dbErr = null;
                     if (!searchErr && existingRecords && existingRecords.length > 0) {
+                        // 若已存在則執行更新（Update）
                         const { error } = await supabaseClient
                             .from('out_of_stock_items')
                             .update(payload)
                             .eq('id', existingRecords[0].id);
                         dbErr = error;
                     } else {
+                        // 若不存在則執行新增（Insert）
                         const { error } = await supabaseClient
                             .from('out_of_stock_items')
                             .insert(payload);
                         dbErr = error;
                     }
 
+                    // 處理資料庫錯誤訊息
                     if (dbErr) {
                         console.error('Supabase 儲存至 out_of_stock_items 失敗:', dbErr);
                         if (dbErr.code === '42501') {
@@ -921,10 +1041,11 @@
                     console.error('連線 Supabase 儲存失敗:', err);
                     showError(`連線 Supabase 失敗: ${err.message}`);
                 } finally {
-                    if (saveBtn) saveBtn.disabled = false;
+                    if (saveBtn) saveBtn.disabled = false; // 恢復按鈕可點擊狀態
                 }
             }
 
+            // 關閉彈跳視窗並重新渲染第一頁表格畫面
             closeProgressModal();
             renderTab1();
         }
@@ -1397,17 +1518,23 @@
             renderTab3();
         }
 
+/**
+         * 渲染第一頁（Tab 1）缺貨資料表格
+         */
         function renderTab1() {
             const tbody = document.getElementById('resultBodyTab1');
             if (!tbody) return;
+            // 若無原始資料，顯示提示訊息
             if (tab1Data.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="13" class="px-6 py-10 text-center text-gray-400 italic">無 SHORT25D 或 SHORT25E 資料。</td></tr>`;
                 return;
             }
             
+            // 取得目前的倉庫篩選條件，並進行資料過濾
             const selectedWh = document.getElementById('warehouseFilterSelect')?.value || 'ALL';
             const filteredData = selectedWh === 'ALL' ? tab1Data : tab1Data.filter(item => item.warehouse === selectedWh);
 
+            // 若過濾後無資料，顯示對應提示
             if (filteredData.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="13" class="px-6 py-10 text-center text-gray-400 italic">供應庫「${selectedWh}」無符合之缺貨資料。</td></tr>`;
                 return;
@@ -1416,6 +1543,7 @@
             const summaryMap = new Map();
             const materialTotalCountMap = new Map(); 
 
+            // 統計與彙整資料（以日期、倉庫、料號為 Key 進行群組加總）
             filteredData.forEach(item => {
                 const key = `${item.date}|${item.warehouse}|${item.materialId}`;
                 materialTotalCountMap.set(item.materialId, (materialTotalCountMap.get(item.materialId) || 0) + 1);
@@ -1428,6 +1556,7 @@
                 }
             });
 
+            // 設定倉庫排序優先級（MA > GA > KA > 其他）並進行資料排序
             const warehousePriority = { "MA": 1, "GA": 2, "KA": 3 };
             const sortedData = Array.from(summaryMap.values()).sort((a, b) => {
                 const pA = warehousePriority[a.warehouse] || 99;
@@ -1437,6 +1566,7 @@
                 return a.materialId.localeCompare(b.materialId);
             });
 
+            // 統計各供應商出現的次數，用以判斷是否有重複訂購狀況
             const vendorCountMap = new Map();
             sortedData.forEach(row => {
                 const onWay = findOnWayInfo(row.materialId, row.warehouse);
@@ -1446,11 +1576,28 @@
                 }
             });
 
-            tbody.innerHTML = sortedData.map(row => {
+            // 取得目前的處理進度篩選條件
+            const selectedProgress = document.getElementById('progressFilterSelect')?.value || 'ALL';
+
+            // 逐筆生成表格列（tr）的 HTML 內容
+            const rowsHTML = sortedData.map(row => {
+                const normDate = normalizeDateToISO(row.date);
+                
+                // 取得該材料目前的處理狀態物件（先取得以便進行進度篩選）
+                const statusObj = getStatusForMaterial(row.warehouse, row.materialId, normDate);
+                const status = statusObj.status || '未處理';
+
+                return { row, status, statusObj, normDate };
+            }).filter(({ status }) => {
+                // 依據「處理進度」下拉選單過濾
+                if (selectedProgress === 'ALL') return true;
+                return status === selectedProgress;
+            }).map(({ row, status, statusObj, normDate }) => {
                 const isRepeatedAcrossSet = materialTotalCountMap.get(row.materialId) > row.count;
                 const spec = findSpecByMaterialId(row.materialId);
                 const orderDept = findOrderDept(row.warehouse, row.materialId);
                 
+                // 判斷備註標籤內容與樣式
                 let remark = '-';
                 if (isRepeatedAcrossSet) {
                     remark = '<span class="text-red-600 bg-red-50 px-1.5 py-0.5 rounded font-semibold">多庫別</span>';
@@ -1460,11 +1607,13 @@
                 
                 const onWay = findOnWayInfo(row.materialId, row.warehouse);
 
+                // 處理請購案號顯示與標籤樣式
                 const hasReqNo = onWay.reqNo && onWay.reqNo !== '-' && onWay.reqNo.trim() !== '';
                 const reqNoDisplay = hasReqNo 
                     ? `<span class="font-mono text-indigo-700">${onWay.reqNo}</span>`
                     : `<span class="bg-green-600 text-white font-bold px-2 py-0.5 rounded shadow-sm inline-block">無請購案號</span>`;
 
+                // 處理供應商顯示與重複狀態判斷
                 const hasVendor = onWay.vendorShort && onWay.vendorShort !== '-' && onWay.vendorShort.trim() !== '';
                 const isVendorDuplicate = hasVendor && (vendorCountMap.get(onWay.vendorShort) || 0) > 1;
                 
@@ -1477,12 +1626,9 @@
                     vendorDisplay = `<span class="font-semibold text-indigo-700">${onWay.vendorShort}</span>`;
                 }
 
-                const normDate = normalizeDateToISO(row.date);
                 const itemKey = `${normDate}|${row.warehouse}|${row.materialId}`;
-                
-                const statusObj = getStatusForMaterial(row.warehouse, row.materialId, normDate);
-                const status = statusObj.status || '未處理';
 
+                // 依據不同狀態設定按鈕樣式與圖示
                 let statusBadgeClass = 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200';
                 let statusIcon = '📝';
                 if (status === '未處理') {
@@ -1514,6 +1660,7 @@
                     statusIcon = '💬';
                 }
 
+                // 組合狀態顯示文字（包含繼承或處理者資訊）
                 let statusDisplayText = `${statusIcon} ${status}`;
                 if (statusObj.inherited && statusObj.inheritedDate) {
                     statusDisplayText += ` (沿用 ${statusObj.inheritedDate.slice(5)})`;
@@ -1521,18 +1668,22 @@
                     statusDisplayText += ` (${statusObj.handler})`;
                 }
 
+                // 設定狀態按鈕的滑鼠提示（Tooltip）文字
                 const tooltipText = statusObj.inherited 
                     ? `[沿用自 ${statusObj.inheritedDate} 紀錄] ${statusObj.note ? '說明: ' + statusObj.note : '點擊更新今日處理進度'}`
                     : (statusObj.note ? '說明: ' + statusObj.note : '點擊更新處理進度');
 
+                // 產生狀態互動按鈕 HTML
                 const statusBtn = `
                     <button onclick="openProcessStatusModal('${itemKey}', '${row.warehouse}', '${row.materialId}', '${normDate}')" title="${tooltipText}" class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition duration-150 inline-flex items-center gap-1 cursor-pointer ${statusBadgeClass}">
                         <span class="max-w-[150px] truncate">${statusDisplayText}</span>
                     </button>
                 `;
 
+                // 若數量大於 10 則使用醒目顏色標示
                 const countClass = row.count > 10 ? 'text-red-600 font-extrabold text-sm' : 'text-indigo-600 font-bold';
 
+                // 回傳完整的表格列 HTML 字串
                 return `
                 <tr class="hover:bg-blue-50 border-b border-gray-100 transition whitespace-nowrap">
                     <td class="px-4 py-3 text-center">${statusBtn}</td>
@@ -1552,9 +1703,17 @@
                     <td class="px-4 py-3 text-indigo-700">${onWay.phone}</td>
                 </tr>
                 `;
-            }).join('');
-        }
+            });
 
+            // 若經過處理進度篩選後沒有符合的資料，顯示對應提示
+            if (rowsHTML.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="13" class="px-6 py-10 text-center text-gray-400 italic">無符合處理進度「${selectedProgress}」之缺貨資料。</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = rowsHTML.join('');
+        }
+        
         function renderTab2() {
             const tbody = document.getElementById('resultBodyTab2');
             if (!tbody) return;
