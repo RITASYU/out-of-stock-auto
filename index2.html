@@ -1627,7 +1627,7 @@
 // === 1. 先在外面處理好所有需要自動初始化的資料 ===
 const newEntries = [];
 
-// 1. 先把資料轉換並帶入初始化邏輯（不直接轉 HTML）
+// 1. 先處理資料與自動初始化
 const processedData = sortedData.map(row => {
     const normDate = normalizeDateToISO(row.date);
     
@@ -1661,37 +1661,35 @@ const processedData = sortedData.map(row => {
     return { row, status, statusObj, normDate, vendorShort };
 });
 
-// 2. 進行條件過濾
+// 2. 進行條件過濾（確保前面沒有重複宣告過 filteredData）
 const filteredData = processedData.filter(({ status, vendorShort }) => {
     const matchProgress = (selectedProgress === 'ALL' || status === selectedProgress);
     const matchVendor = (selectedVendor === 'ALL' || vendorShort === selectedVendor);
     return matchProgress && matchVendor;
 });
 
-// 3. 最後再將過濾後的資料轉換為表格的 HTML 字串
+// 3. 產生表格 HTML
 const rowsHTML = filteredData.map(({ row, status, statusObj, normDate }) => {
     const isRepeatedAcrossSet = materialTotalCountMap.get(row.materialId) > row.count;
     const spec = findSpecByMaterialId(row.materialId);
     const orderDept = findOrderDept(row.warehouse, row.materialId);
 
-    // 這裡放入你的 tr HTML 樣板
-    return `<tr>...</tr>`; 
+    return `<tr>...</tr>`; // 記得換回你原本的 HTML 樣板
 });
 
-// === 4. 批次寫入 Supabase ===
+// 4. 背景非同步寫入 Supabase
 if (newEntries.length > 0) {
-    (async () => {
+    setTimeout(async () => {
         try {
             const { error } = await supabaseClient
                 .from('out_of_stock_items')
                 .insert(newEntries);
                 
-            if (error) throw error;
-            console.log(`[系統] 已成功批次初始化 ${newEntries.length} 筆狀態`);
+            if (error) console.error("Supabase 寫入失敗:", error.message);
         } catch (err) {
-            console.error("批次初始化寫入失敗:", err);
+            console.error("寫入異常:", err);
         }
-    })();
+    }, 0);
 }
                 
                 let remark = '-';
