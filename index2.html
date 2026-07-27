@@ -315,7 +315,7 @@
             </button>
         </div>
 
-        <!-- ========================================================= -->
+<!-- ========================================================= -->
         <!-- Tab 1: 缺貨頻次分析 內容區塊 (預設顯示 active) -->
         <!-- ========================================================= -->
         <div id="tab1" class="tab-content active">
@@ -324,30 +324,19 @@
                 <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                     <h2 class="text-lg font-bold text-gray-800">分析報告：缺貨頻次 (25D/E)</h2>
                     <div class="flex flex-wrap items-center gap-2">
-                        <!-- 批號篩選下拉選單容器 -->
+                        <!-- 處理進度篩選下拉選單容器 -->
                         <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
                             <span class="text-gray-600 font-semibold">處理進度:</span>
-                            <!-- 批號篩選下拉選單：變更時觸發 renderTab1() 更新表格 -->
-                            <select id="batchFilterSelect" onchange="renderTab1()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
+                            <!-- 處理進度篩選下拉選單：變更時觸發 renderTab1() 更新表格 -->
+                            <select id="statusFilterSelectTab1" onchange="renderTab1()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
                                 <option value="ALL">全部</option>
                             </select>
                         </div>
                         <button onclick="clearData('tab1')" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300 font-medium">清空</button>
                         <button onclick="exportCSV('tab1')" class="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 font-medium shadow-sm">匯出</button>
                     </div>
+                </div> <!-- <-- 補上這個原本遺漏的 div 結尾標籤 -->
 
-
-
-
-
-
-
-
-
-
-
-
-                
                 <!-- 表格捲動容器 -->
                 <div class="table-container max-h-[500px]">
                     <table class="w-full text-left border-collapse sticky-header text-xs">
@@ -376,7 +365,6 @@
                 </div>
             </div>
         </div>
-
         <!-- ========================================================= -->
         <!-- Tab 2: 在庫低於安全庫存分析 (G5404) 內容區塊 (預設隱藏) -->
         <!-- ========================================================= -->
