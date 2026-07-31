@@ -246,29 +246,19 @@
 
             <!-- 右側控制項與動作按鈕群組區塊 (包含供應庫篩選、日期選擇與重新擷取按鈕) -->
             <div class="flex items-center gap-2 w-full md:w-auto justify-end shrink-0 flex-wrap">
-<!-- 供應庫篩選多選容器 -->
-<div class="flex items-center gap-2 bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm">
+
+        <!-- 供應庫篩選下拉選單 (多選，動態產生選項) -->
+<div class="flex items-center gap-1.5 bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
     <!-- 篩選圖示 SVG -->
     <svg class="w-3.5 h-3.5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
     </svg>
     <span class="text-gray-600 font-semibold shrink-0">供應庫:</span>
     
-    <!-- 動態勾選框容器 (支援多選) -->
-    <div id="warehouseCheckboxGroup" class="flex items-center gap-2.5 flex-wrap">
-        <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" name="warehouseFilter" value="MA" onchange="renderAllTabs()" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"> MA</label>
-        <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" name="warehouseFilter" value="MB" onchange="renderAllTabs()" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"> MB</label>
-        <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" name="warehouseFilter" value="ME" onchange="renderAllTabs()" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"> ME</label>
-        <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" name="warehouseFilter" value="FA" onchange="renderAllTabs()" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"> FA</label>
-        <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" name="warehouseFilter" value="FB" onchange="renderAllTabs()" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"> FB</label>
-        <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" name="warehouseFilter" value="GA" onchange="renderAllTabs()" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"> GA</label>
-        <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" name="warehouseFilter" value="GB" onchange="renderAllTabs()" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"> GB</label>
-        <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" name="warehouseFilter" value="KA" onchange="renderAllTabs()" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"> KA</label>
-        <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" name="warehouseFilter" value="KB" onchange="renderAllTabs()" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"> KB</label>
-        <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" name="warehouseFilter" value="KE" onchange="renderAllTabs()" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"> KE</label>
-        <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" name="warehouseFilter" value="YKA" onchange="renderAllTabs()" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"> YKA</label>
-        <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" name="warehouseFilter" value="XKA" onchange="renderAllTabs()" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"> XKA</label>
-    </div>
+    <!-- 多選下拉選單 (動態填入選項) -->
+    <select id="warehouseFilterSelect" multiple onchange="renderAllTabs()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer text-xs h-16 py-0.5">
+        <!-- 動態載入選項 -->
+    </select>
 </div>
 
                 <!-- 日期挑選器：當日期變更時，觸發 changeQueryDate(this.value) 切換查詢目標日期 -->
