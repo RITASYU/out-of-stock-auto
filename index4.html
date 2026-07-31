@@ -1,42 +1,54 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+    <!-- 設定網頁編碼為 UTF-8，確保中文與特殊字元正確顯示 -->
     <meta charset="UTF-8">
+    <!-- 設定行動裝置響應式視口，控制頁面縮放與寬度 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 設定瀏覽器分頁標題 -->
     <title>每日缺貨資料彙總系統</title>
-    <!-- Tailwind CSS CDN -->
+    <!-- 載入 Tailwind CSS 樣式框架 CDN，用於快速排版與設計 -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS Client CDN -->
+    <!-- 載入 Supabase JS Client 客戶端函式庫 CDN，用於後端資料庫連線與互動 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
+    <!-- 自定義樣式設定區塊 -->
     <style>
+        /* 表格標題固定在頂端（Sticky Header）的樣式 */
         .sticky-header th {
             position: sticky;
             top: 0;
             background: #f3f4f6;
             z-index: 10;
         }
+        /* 預設隱藏分頁內容區塊 */
         .tab-content {
             display: none;
         }
+        /* 當分頁被啟用時顯示內容區塊 */
         .tab-content.active {
             display: block;
         }
+        /* 當分頁按鈕被啟用時的樣式（底部邊框與文字顏色） */
         .tab-btn.active {
             border-bottom: 3px solid #4f46e5;
             color: #4f46e5;
         }
+        /* 表格容器滾動條樣式，防止寬表格溢出 */
         .table-container {
             overflow-x: auto;
             max-width: 100%;
         }
+        /* 超小字體樣式定義 (0.7rem) */
         .text-tiny {
             font-size: 0.7rem;
         }
+        /* 定義微幅閃爍動畫的透明度變化關鍵影格 */
         @keyframes pulse-subtle {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.6; }
         }
+        /* 套用微幅閃爍動畫效果，設定持續時間與無限循環 */
         .animate-pulse-subtle {
             animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
@@ -47,115 +59,201 @@
     <!-- ========================================================= -->
     <!-- 📍 1. 登入畫面 HTML 結構區塊 (預設全螢幕覆蓋)             -->
     <!-- ========================================================= -->
-    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-4">
-        <div class="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 shadow-2xl text-white">
-            <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600/30 border border-indigo-400/30 text-3xl mb-3 shadow-inner">
-                    📦
-                </div>
-                <h2 class="text-2xl font-bold tracking-tight text-white">每日缺貨資料螢幕登入</h2>
-                <p class="text-xs text-slate-300 mt-1">請輸入您的帳號密碼以存取每日缺貨與在途報表</p>
+    <!-- 登入畫面最外層容器：固定全螢幕、置中、深色漸層背景、最高層級 (z-50) -->
+    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-4 transition-all duration-300">
+        <!-- 登入表單容器：半透明毛玻璃效果、圓角、陰影、白色文字 -->
+        <div class="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 shadow-2xl text-white relative">
+            
+            <!-- 登入標題與圖示區塊 -->
+            <div class="text-center mb-6">
+                <!-- 系統代表圖示（📦） -->
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600/30 border border-indigo-400/30 text-3xl mb-3 shadow-inner">📦</div>
+                <!-- 登入畫面主標題 -->
+                <h2 id="loginTitle" class="text-2xl font-bold tracking-tight text-white">每日缺貨資料螢幕登入index2</h2>
+                <!-- 登入畫面副標題提示 -->
+                <p id="loginSubtitle" class="text-xs text-slate-300 mt-1">請輸入帳號密碼以存取報表系統</p>
             </div>
 
-            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
-                <div id="loginError" class="hidden p-3 rounded-lg bg-red-500/20 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
-                    <svg class="w-4 h-4 shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span id="loginErrorMsg">帳號或密碼錯誤</span>
-                </div>
+            <!-- 錯誤訊息提示框 (預設隱藏，當登入失敗時觸發顯示) -->
+            <div id="loginError" class="hidden mb-4 p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs flex items-center gap-2">
+                <!-- 錯誤警告圖示 SVG -->
+                <svg class="w-4 h-4 shrink-0 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <!-- 錯誤訊息文字內容 -->
+                <span id="loginErrorMsg">帳號或密碼錯誤</span>
+            </div>
 
+            <!-- 第一步驟表單：系統身份驗證 (帳號密碼輸入) -->
+            <!-- 動作：當表單提交時，觸發 handleStep1(event) 驗證帳密函式 -->
+            <form id="step1Form" onsubmit="handleStep1(event)" class="space-y-5">
+                <!-- 帳號輸入欄位群組 -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1.5">帳號 (Username)</label>
                     <div class="relative">
+                        <!-- 帳號欄位左側裝飾圖示 -->
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 pointer-events-none">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                         </span>
-                        <input type="text" id="loginUsername" required placeholder="請輸入帳號" class="w-full pl-10 pr-4 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+                        <!-- 帳號文字輸入框：加入 onkeydown 事件，當按下 Enter 鍵時自動將焦點切換至密碼輸入框 -->
+                        <input type="text" id="loginUsername" required placeholder="請輸入帳號" onkeydown="if(event.key==='Enter'){event.preventDefault(); document.getElementById('loginPassword').focus();}" class="w-full pl-10 pr-4 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                     </div>
                 </div>
 
+                <!-- 密碼輸入欄位群組 -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1.5">密碼 (Password)</label>
                     <div class="relative">
+                        <!-- 密碼欄位左側裝飾圖示 -->
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 pointer-events-none">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                         </span>
-                        <input type="password" id="loginPassword" required placeholder="請輸入密碼" class="w-full pl-10 pr-10 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+                        <!-- 密碼文字輸入框 -->
+                        <input type="password" id="loginPassword" required placeholder="請輸入密碼" class="w-full pl-10 pr-10 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        <!-- 顯示/隱藏密碼切換按鈕：點擊時觸發 togglePasswordVisibility() 函式 -->
                         <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white">
+                            <!-- 眼睛圖示 SVG (用於切換密碼可見性) -->
                             <svg id="eyeIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                         </button>
                     </div>
                 </div>
 
-                <button type="submit" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition duration-150 flex items-center justify-center gap-2">
+                <!-- 步驟一送出按鈕：點擊後觸發表單提交，進行帳密驗證並進入下一步 -->
+                <button type="submit" id="step1Btn" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
-                    登入系統
+                    下一步：選擇人員身份
                 </button>
+            </form>
+
+            <!-- 第二步驟表單：部門與人員身份選擇 (預設隱藏 hidden) -->
+            <!-- 動作：當表單提交時，觸發 handleStep2(event) 完成最終登入動作 -->
+            <form id="step2Form" onsubmit="handleStep2(event)" class="space-y-5 hidden">
+                <!-- 服務單位 / 部門下拉選單區塊 -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">服務單位 / 部門</label>
+                    <!-- 下拉選單：當選項改變時，觸發 onDepartmentChange() 聯動更新人員姓名清單 -->
+                    <select id="userDepartment" onchange="onDepartmentChange()" required class="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition cursor-pointer">
+                        <option value="">-- 載入部門名單中... --</option>
+                    </select>
+                </div>
+
+                <!-- 使用人員姓名下拉選單區塊 -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">使用人員姓名</label>
+                    <div class="relative">
+                        <!-- 下拉選單：根據所選部門動態載入對應的使用者姓名 -->
+                        <select id="userFullName" required class="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition cursor-pointer">
+                            <option value="">-- 請先選擇單位 --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 按鈕群組：包含「上一步」與「確認登入系統」 -->
+                <div class="flex gap-3">
+                    <!-- 上一步按鈕：點擊時觸發 goToStep1() 函式，返回第一步驟帳密登入畫面 -->
+                    <button type="button" onclick="goToStep1()" class="w-1/3 py-3 px-4 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-sm rounded-xl transition">
+                        上一步
+                    </button>
+                    <!-- 確認登入系統送出按鈕：點擊後觸發 handleStep2(event) 進行驗證並解鎖主系統 -->
+                    <button type="submit" id="step2Btn" class="w-2/3 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        確認登入系統
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 
+    <!-- ========================================================= -->
     <!-- Main Dashboard Container (Hidden until logged in) -->
+    <!-- ========================================================= -->
+    <!-- 主儀表板最外層容器：設定最大寬度、置中，且預設隱藏 (hidden)，待登入成功後才會顯示 -->
     <div id="mainDashboard" class="max-w-[1600px] mx-auto hidden">
-        <!-- Header -->
+        <!-- 儀表板頂端導覽列/標頭區塊 (支援響應式排版，手機直式上下排列、桌機橫向左右排列) -->
         <div class="relative mb-6 flex flex-col md:flex-row items-center justify-between pb-2 border-b border-gray-200">
+            <!-- 左側系統標題與圖示區塊 -->
             <div class="flex items-center gap-3 mb-2 md:mb-0">
+                <!-- 系統主圖示 (📦) -->
                 <span class="text-3xl">📦</span>
                 <div>
+                    <!-- 儀表板主標題 -->
                     <h1 class="text-2xl md:text-3xl font-bold text-gray-800">每日缺貨資料彙總</h1>
+                    <!-- 儀表板副標題說明 -->
                     <p class="text-xs text-gray-500">自動擷取當日缺貨與在途報表</p>
                 </div>
             </div>
 
-            <!-- Top Right Date & Actions -->
+            <!-- 右側狀態標籤與操作按鈕群組區塊 -->
             <div class="flex flex-wrap items-center gap-2 mt-2 md:mt-0">
+                <!-- 資料庫連線狀態徽章 (預設顯示黃色「連線中」與脈衝動畫) -->
                 <span id="supabaseStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 border border-yellow-200 rounded-lg text-xs font-semibold text-yellow-800">
+                    <!-- 狀態指示燈閃爍點 -->
                     <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+                    <!-- 狀態文字內容 -->
                     <span id="statusText">連線中</span>
                 </span>
 
+                <!-- 當前日期顯示區塊：帶有日曆圖示與日期文字 -->
                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 shadow-sm rounded-lg text-xs font-semibold text-gray-700">
+                    <!-- 日曆圖示 SVG -->
                     <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                     </svg>
+                    <!-- 動態載入當前日期的文字容器 -->
                     <span id="currentDateText">--</span>
                 </span>
 
-                <!-- User Info & Logout Button -->
+                <!-- 使用者資訊與登出按鈕群組 (左側帶有分隔線) -->
                 <div class="flex items-center gap-2 pl-2 border-l border-gray-200">
+                    <!-- 登入使用者身份標籤 (顯示目前登入的使用者帳號/姓名) -->
                     <span class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-lg text-xs font-bold">
                         👤 <span id="currentUserName">stock</span>
                     </span>
+                    <!-- 系統登出按鈕：點擊時觸發 handleLogout() 函式，清除登入狀態並返回登入畫面 -->
                     <button onclick="handleLogout()" title="登出系統" class="px-2.5 py-1.5 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-200 hover:border-red-200 rounded-lg text-xs font-semibold transition flex items-center gap-1">
+                        <!-- 登出圖示 SVG -->
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                         登出
                     </button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Supabase Data Sync Banner -->
+       <!-- ========================================================= -->
+        <!-- Supabase Data Sync Banner (資料自動擷取狀態控制面板) -->
+        <!-- ========================================================= -->
+        <!-- 同步狀態橫幅外層：白色背景、圓角、陰影、邊框，支援響應式垂直與水平排列 -->
         <div class="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
+            <!-- 左側狀態資訊與圖示區塊 -->
             <div class="flex items-center gap-3 w-full md:w-auto">
+                <!-- 資料同步圖示外框 -->
                 <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
+                    <!-- 同步循環圖示 SVG -->
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                     </svg>
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
+                        <!-- 區塊標題 -->
                         <h3 class="font-bold text-gray-800 text-sm">資料自動擷取狀態</h3>
+                        <!-- 當前查詢日期徽章：動態顯示目前載入或查詢的資料日期 -->
                         <span id="targetDateBadge" class="bg-indigo-100 text-indigo-800 text-[11px] px-2 py-0.5 rounded font-mono font-medium">當前查詢日期: --</span>
                     </div>
+                    <!-- 同步詳細說明文字 -->
                     <p id="syncDetailText" class="text-xs text-gray-500 mt-0.5">自動連接 (daily-files) 讀取當天缺貨資料檔。</p>
                 </div>
             </div>
 
+            <!-- 右側控制項與動作按鈕群組區塊 (包含供應庫篩選、日期選擇與重新擷取按鈕) -->
             <div class="flex items-center gap-2 w-full md:w-auto justify-end shrink-0 flex-wrap">
+                <!-- 供應庫篩選下拉選單容器 -->
                 <div class="flex items-center gap-1.5 bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
+                    <!-- 篩選圖示 SVG -->
                     <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
                     </svg>
                     <span class="text-gray-600 font-semibold">供應庫:</span>
+                    <!-- 供應庫下拉選單：當選項改變時，觸發 renderAllTabs() 重新渲染所有分頁資料 -->
                     <select id="warehouseFilterSelect" onchange="renderAllTabs()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
                         <option value="ALL">全部庫別</option>
                         <option value="MA">MA 庫</option>
@@ -163,7 +261,11 @@
                         <option value="KA">KA 庫</option>
                     </select>
                 </div>
+
+                <!-- 日期挑選器：當日期變更時，觸發 changeQueryDate(this.value) 切換查詢目標日期 -->
                 <input type="date" id="queryDatePicker" onchange="changeQueryDate(this.value)" class="text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 text-gray-700 bg-gray-50">
+                
+                <!-- 重新擷取資料按鈕：點擊時觸發 fetchTodayDataFromSupabase() 強制從雲端同步最新資料 -->
                 <button onclick="fetchTodayDataFromSupabase()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -173,61 +275,132 @@
             </div>
         </div>
 
-        <!-- Loaded Files Badge List -->
+        <!-- ========================================================= -->
+        <!-- Loaded Files Badge List (已載入檔案狀態標籤清單) -->
+        <!-- ========================================================= -->
+        <!-- 檔案清單容器：動態顯示目前資料庫已成功載入的檔案項目 -->
         <div id="fileStatusContainer" class="mb-4 flex flex-wrap items-center gap-2 min-h-[28px]">
             <span class="text-xs font-semibold text-gray-400">當前資料庫載入檔案：</span>
             <div id="fileStatus" class="flex flex-wrap gap-2">
+                <!-- 預設提示文字 (尚未載入檔案時顯示) -->
                 <span class="text-xs text-gray-400 italic">尚未載入檔案</span>
             </div>
         </div>
 
+        <!-- ========================================================= -->
+        <!-- Error Message Alert Box (系統錯誤訊息提示框，預設隱藏) -->
+        <!-- ========================================================= -->
         <div id="errorMessage" class="mb-6 text-sm text-red-600 hidden bg-red-50 p-3 rounded-lg border border-red-200 flex justify-between items-center">
+            <!-- 錯誤訊息文字容器 -->
             <span id="errorText"></span>
+            <!-- 關閉錯誤訊息按鈕：點擊時將 errorMessage 元素加上 hidden 隱藏類別 -->
             <button onclick="document.getElementById('errorMessage').classList.add('hidden')" class="text-red-500 font-bold ml-2">&times;</button>
         </div>
 
-        <!-- Tab Navigation -->
+        <!-- ========================================================= -->
+        <!-- Tab Navigation (三大功能分頁切換按鈕導覽列) -->
+        <!-- ========================================================= -->
         <div class="flex border-b border-gray-200 mb-6 bg-white rounded-t-lg px-4 overflow-x-auto">
+            <!-- 分頁按鈕 1：缺貨頻次分析 (預設 active) -->
             <button onclick="switchTab('tab1')" id="btn-tab1" class="tab-btn active px-6 py-3 font-bold text-sm transition-all duration-200 whitespace-nowrap">
                 缺貨頻次分析 (25D/E)
             </button>
+            <!-- 分頁按鈕 2：在庫低於安全庫存分析 -->
             <button onclick="switchTab('tab2')" id="btn-tab2" class="tab-btn px-6 py-3 font-bold text-sm text-gray-500 transition-all duration-200 whitespace-nowrap">
                 在庫低於安全庫存分析 (G5404)
             </button>
+            <!-- 分頁按鈕 3：在途資料 -->
             <button onclick="switchTab('tab3')" id="btn-tab3" class="tab-btn px-6 py-3 font-bold text-sm text-gray-500 transition-all duration-200 whitespace-nowrap">
                 在途資料
             </button>
         </div>
 
-        <!-- Tab 1: 缺貨頻次分析 -->
+        <!-- ========================================================= -->
+        <!-- Tab 1: 缺貨頻次分析 內容區塊 (預設顯示 active) -->
+        <!-- ========================================================= -->
         <div id="tab1" class="tab-content active">
             <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+                <!-- 區塊標頭與操作按鈕群組 (清空、匯出) -->
                 <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                     <h2 class="text-lg font-bold text-gray-800">分析報告：缺貨頻次 (25D/E)</h2>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Tab 1 處理進度篩選下拉選單 -->
+<div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
+    <span class="text-gray-600 font-semibold">處理進度:</span>
+    <select id="progressFilterSelect" onchange="renderTab1()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
+        <option value="ALL">全部進度</option>
+        <option value="未處理">未處理</option>
+        <option value="已到貨入庫">已到貨入庫</option>
+        <option value="已洽供應商">已洽供應商</option>
+        <option value="尚未訂購">尚未訂購</option>
+        <option value="配合交貨">配合交貨</option>
+        <option value="無存管">無存管</option>
+        <option value="02附圖">02附圖</option>
+        <option value="03調撥">03調撥</option>
+        <option value="異常事項">異常事項</option>
+        <option value="其他(詳說明)">其他(詳說明)</option>
+    </select>
+</div>
+<!-- Tab 1 廠商簡稱篩選下拉選單 -->
+<div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
+    <span class="text-gray-600 font-semibold">廠商:</span>
+    <select id="vendorFilterSelect" onchange="renderTab1()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
+        <option value="ALL">全部廠商</option>
+        <!-- 選項會由 JavaScript 動態填入 -->
+    </select>
+</div>
                         <button onclick="clearData('tab1')" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300 font-medium">清空</button>
                         <button onclick="exportCSV('tab1')" class="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 font-medium shadow-sm">匯出</button>
                     </div>
-                </div>
+                </div> 
+
+                <!-- 表格捲動容器 -->
                 <div class="table-container max-h-[500px]">
                     <table class="w-full text-left border-collapse sticky-header text-xs">
-                        <thead>
-                            <tr class="bg-gray-100 text-gray-700 uppercase font-bold">
-                                <th class="px-4 py-3 border-b text-center min-w-[100px]">處理進度</th>
-                                <th class="px-4 py-3 border-b">補充日期</th>
-                                <th class="px-4 py-3 border-b">供應庫</th>
-                                <th class="px-4 py-3 border-b">材料編號</th>
-                                <th class="px-4 py-3 border-b">品名規格</th>
-                                <th class="px-4 py-3 border-b">單位</th>
-                                <th class="px-4 py-3 border-b text-center">缺貨筆數</th>
-                                <th class="px-4 py-3 border-b text-center">補充類別</th>
-                                <th class="px-4 py-3 border-b text-center">備註</th>
-                                <th class="px-4 py-3 border-b text-indigo-700">訂購別</th>
-                                <th class="px-4 py-3 border-b text-indigo-700">請購案號</th>
-                                <th class="px-4 py-3 border-b text-indigo-700">廠商簡稱</th>
-                                <th class="px-4 py-3 border-b text-indigo-700">電話</th>
-                            </tr>
-                        </thead>
+<thead>
+    <tr class="bg-gray-100 text-gray-700 uppercase font-bold select-none">
+        <th class="px-4 py-3 border-b text-center min-w-[100px] cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab1('progress')">
+            處理進度 <span id="sort-progress" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-4 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab1('date')">
+            補充日期 <span id="sort-date" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-4 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab1('warehouse')">
+            供應庫 <span id="sort-warehouse" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-4 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab1('materialNo')">
+            材料編號 <span id="sort-materialNo" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-4 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab1('spec')">
+            品名規格 <span id="sort-spec" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-4 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab1('unit')">
+            單位 <span id="sort-unit" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-4 py-3 border-b text-center cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab1('shortCount')">
+            缺貨筆數 <span id="sort-shortCount" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-4 py-3 border-b text-center cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab1('category')">
+            補充類別 <span id="sort-category" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-4 py-3 border-b text-center cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab1('remark')">
+            備註 <span id="sort-remark" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-4 py-3 border-b text-indigo-700 cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab1('orderType')">
+            訂購別 <span id="sort-orderType" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-4 py-3 border-b text-indigo-700 cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab1('caseNo')">
+            請購案號 <span id="sort-caseNo" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-4 py-3 border-b text-indigo-700 cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab1('vendor')">
+            廠商簡稱 <span id="sort-vendor" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-4 py-3 border-b text-indigo-700 cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab1('phone')">
+            電話 <span id="sort-phone" class="text-gray-400 font-normal"></span>
+        </th>
+    </tr>
+</thead>
+                        <!-- 資料內容填入處 (由 JavaScript 動態載入) -->
                         <tbody id="resultBodyTab1" class="text-gray-600">
                             <tr><td colspan="13" class="px-6 py-10 text-center text-gray-400 italic">尚未取得 SHORT25D 或 SHORT25E 資料。</td></tr>
                         </tbody>
@@ -235,38 +408,80 @@
                 </div>
             </div>
         </div>
-
-        <!-- Tab 2: 在庫低於安全庫存分析 (G5404) -->
+        <!-- ========================================================= -->
+        <!-- Tab 2: 在庫低於安全庫存分析 (G5404) 內容區塊 (預設隱藏) -->
+        <!-- ========================================================= -->
         <div id="tab2" class="tab-content">
             <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
-                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <h2 class="text-lg font-bold text-gray-800">在庫低於安全庫存分析 (G5404 合併)</h2>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- 用完日篩選器容器 -->
+                        <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2 py-1.5 text-xs shadow-sm">
+                            <span class="text-gray-600 font-semibold">用完日:</span>
+                            <!-- 用完日篩選下拉選單：變更時觸發 renderTab2() 進行資料過濾 -->
+                            <select id="endDateFilterSelect" onchange="renderTab2()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
+                                <option value="ALL">全部</option>
+                                <option value="7D">一週內</option>
+                                <option value="14D">兩週內</option>
+                                <option value="30D">一個月內</option>
+                            </select>
+                        </div>
                         <button onclick="clearData('tab2')" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300 font-medium">清空</button>
                         <button onclick="exportCSV('tab2')" class="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 font-medium shadow-sm">匯出</button>
                     </div>
                 </div>
                 <div class="table-container max-h-[600px]">
                     <table class="w-full text-left border-collapse sticky-header text-tiny">
-                        <thead>
-                            <tr class="bg-gray-100 text-gray-700 uppercase font-bold whitespace-nowrap">
-                                <th class="px-3 py-3 border-b">供應庫</th>
-                                <th class="px-3 py-3 border-b">材料編號</th>
-                                <th class="px-3 py-3 border-b">單位</th>
-                                <th class="px-3 py-3 border-b">品名規格</th>
-                                <th class="px-3 py-3 text-center border-b">配合交貨</th>
-                                <th class="px-3 py-3 text-right border-b">設定月用量</th>
-                                <th class="px-3 py-3 text-right border-b">庫存量</th>
-                                <th class="px-3 py-3 text-center border-b">用完日</th>
-                                <th class="px-3 py-3 border-b">請購案號</th>
-                                <th class="px-3 py-3 border-b">請購日</th>
-                                <th class="px-3 py-3 border-b">需要日/約交日</th>
-                                <th class="px-3 py-3 text-right border-b">在途量</th>
-                                <th class="px-3 py-3 text-center border-b">進貨天數</th>
-                                <th class="px-3 py-3 border-b">廠商編號</th>
-                                <th class="px-3 py-3 border-b text-indigo-700">廠商簡稱</th>
-                            </tr>
-                        </thead>
+<thead>
+    <tr class="bg-gray-100 text-gray-700 uppercase font-bold whitespace-nowrap select-none">
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab2('warehouse')">
+            供應庫 <span id="sort-tab2-warehouse" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab2('materialId')">
+            材料編號 <span id="sort-tab2-materialId" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab2('unit')">
+            單位 <span id="sort-tab2-unit" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab2('spec')">
+            品名規格 <span id="sort-tab2-spec" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 text-center border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab2('delivery')">
+            配合交貨 <span id="sort-tab2-delivery" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 text-right border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab2('monthlyQty')">
+            設定月用量 <span id="sort-tab2-monthlyQty" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 text-right border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab2('stockQty')">
+            庫存量 <span id="sort-tab2-stockQty" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 text-center border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab2('endDate')">
+            用完日 <span id="sort-tab2-endDate" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab2('reqNo')">
+            請購案號 <span id="sort-tab2-reqNo" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab2('reqDate')">
+            請購日 <span id="sort-tab2-reqDate" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab2('needDate')">
+            需要日/約交日 <span id="sort-tab2-needDate" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 text-right border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab2('onWayQty')">
+            在途量 <span id="sort-tab2-onWayQty" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 text-center border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab2('leadTime')">
+            進貨天數 <span id="sort-tab2-leadTime" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab2('vendorId')">
+            廠商編號 <span id="sort-tab2-vendorId" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b text-indigo-700 cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab2('vendorShort')">
+            廠商簡稱 <span id="sort-tab2-vendorShort" class="text-gray-400 font-normal"></span>
+        </th>
+    </tr>
+</thead>
                         <tbody id="resultBodyTab2" class="text-gray-600">
                             <tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 text-sm italic">尚未取得包含 G5404 的資料檔案。</td></tr>
                         </tbody>
@@ -275,21 +490,26 @@
             </div>
         </div>
 
-        <!-- Tab 3: 在途資料 -->
+        <!-- ========================================================= -->
+        <!-- Tab 3: 在途資料 內容區塊 (預設隱藏) -->
+        <!-- ========================================================= -->
         <div id="tab3" class="tab-content">
             <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
                 <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <h2 class="text-lg font-bold text-gray-800">在途資料彙總 (OnWayPurh)</h2>
                     <div class="flex flex-wrap items-center gap-2">
-                        <!-- 📍 新增批號篩選紐 (位於訂購別篩選紐左邊) -->
+                        <!-- 批號篩選下拉選單容器 -->
                         <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
                             <span class="text-gray-600 font-semibold">批號:</span>
+                            <!-- 批號篩選下拉選單：變更時觸發 renderTab3() 更新表格 -->
                             <select id="batchFilterSelect" onchange="renderTab3()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
                                 <option value="ALL">全部批號</option>
                             </select>
                         </div>
+                        <!-- 訂購別篩選下拉選單容器 -->
                         <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs shadow-sm focus-within:ring-2 focus-within:ring-indigo-500">
                             <span class="text-gray-600 font-semibold">訂購別:</span>
+                            <!-- 訂購別篩選下拉選單：變更時觸發 renderTab3() 更新表格 -->
                             <select id="orderDeptFilterSelect" onchange="renderTab3()" class="bg-transparent text-gray-800 font-bold focus:outline-none cursor-pointer">
                                 <option value="ALL">全部訂購別</option>
                             </select>
@@ -300,29 +520,63 @@
                 </div>
                 <div class="table-container max-h-[600px]">
                     <table class="w-full text-left border-collapse sticky-header text-tiny">
-                        <thead>
-                            <tr class="bg-gray-100 text-gray-700 uppercase font-bold whitespace-nowrap">
-                                <th class="px-3 py-3 border-b">請購案號</th>
-                                <th class="px-3 py-3 border-b">批號</th>
-                                <th class="px-3 py-3 border-b">項次</th>
-                                <th class="px-3 py-3 border-b text-indigo-700">訂購別</th>
-                                <th class="px-3 py-3 border-b">材料編號</th>
-                                <th class="px-3 py-3 border-b">單位</th>
-                                <th class="px-3 py-3 border-b">庫別</th>
-                                <th class="px-3 py-3 border-b text-indigo-700">廠商簡稱</th>
-                                <th class="px-3 py-3 border-b">請購日期</th>
-                                <th class="px-3 py-3 border-b">約交日期</th>
-                                <th class="px-3 py-3 text-right border-b">請購數量</th>
-                                <th class="px-3 py-3 text-right border-b">訂購數量</th>
-                                <th class="px-3 py-3 text-right border-b">累交數量</th>
-                                <th class="px-3 py-3 border-b">電話</th>
-                                <th class="px-3 py-3 border-b">傳真</th>
-                                <th class="px-3 py-3 border-b">訂購廠商</th>
-                                <th class="px-3 py-3 border-b">請購部門</th>
-                            </tr>
-                        </thead>
+<thead>
+    <tr class="bg-gray-100 text-gray-700 uppercase font-bold whitespace-nowrap select-none">
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('reqNo')">
+            請購案號 <span id="sort-tab3-reqNo" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('batch')">
+            批號 <span id="sort-tab3-batch" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('item')">
+            項次 <span id="sort-tab3-item" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b text-indigo-700 cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('orderType')">
+            訂購別 <span id="sort-tab3-orderType" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('materialId')">
+            材料編號 <span id="sort-tab3-materialId" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('unit')">
+            單位 <span id="sort-tab3-unit" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('warehouse')">
+            庫別 <span id="sort-tab3-warehouse" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b text-indigo-700 cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('vendorShort')">
+            廠商簡稱 <span id="sort-tab3-vendorShort" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('reqDate')">
+            請購日期 <span id="sort-tab3-reqDate" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('promiseDate')">
+            約交日期 <span id="sort-tab3-promiseDate" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 text-right border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('reqQty')">
+            請購數量 <span id="sort-tab3-reqQty" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 text-right border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('ordQty')">
+            訂購數量 <span id="sort-tab3-ordQty" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 text-right border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('delivQty')">
+            累交數量 <span id="sort-tab3-delivQty" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('phone')">
+            電話 <span id="sort-tab3-phone" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('fax')">
+            傳真 <span id="sort-tab3-fax" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('vendorId')">
+            訂購廠商 <span id="sort-tab3-vendorId" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('dept')">
+            請購部門 <span id="sort-tab3-dept" class="text-gray-400 font-normal"></span>
+        </th>
+    </tr>
+</thead>
                         <tbody id="resultBodyTab3" class="text-gray-600">
-                            <tr><td colspan="16" class="px-6 py-10 text-center text-gray-400 text-sm italic">尚未取得 OnWayPurhGA/MA/KA 檔案。</td></tr>
+                            <tr><td colspan="17" class="px-6 py-10 text-center text-gray-400 text-sm italic">尚未取得 OnWayPurhGA/MA/KA 檔案。</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -360,10 +614,15 @@
                     <label class="block text-xs font-semibold text-gray-700 mb-1">處理狀態 <span class="text-red-500">*</span></label>
                     <select id="modalStatus" class="w-full text-xs border border-gray-300 rounded-lg p-2.5 bg-white text-gray-800 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                         <option value="未處理">未處理</option>
-                        <option value="詢價/請購中">詢價 / 請購中</option>
-                        <option value="在途運輸中">在途運輸中</option>
                         <option value="已到貨入庫">已到貨入庫</option>
-                        <option value="延遲待追蹤">延遲待追蹤</option>
+                        <option value="已洽供應商">已洽供應商</option>
+                        <option value="尚未訂購">尚未訂購</option>
+                        <option value="配合交貨">配合交貨</option>
+                        <option value="無存管">無存管</option>
+                        <option value="02附圖">02附圖</option>
+                        <option value="03調撥">03調撥</option>
+                        <option value="異常事項">異常事項</option>
+                        <option value="其他(詳說明)">其他(詳說明)</option>
                     </select>
                 </div>
 
@@ -374,7 +633,7 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-700 mb-1">經辦人員</label>
-                    <input type="text" id="modalUpdatedBy" placeholder="請輸入姓名/部門 (例: 資材-張小明)" class="w-full text-xs border border-gray-300 rounded-lg p-2 text-gray-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input type="text" id="modalUpdatedBy" disabled class="w-full text-xs border border-gray-200 rounded-lg p-2 text-gray-500 bg-gray-100 cursor-not-allowed focus:outline-none font-medium">
                 </div>
 
                 <div class="pt-2 flex items-center justify-end gap-2">
@@ -388,76 +647,229 @@
     </div> 
 
     <!-- ========================================================= -->
-    <!-- 📍 JavaScript 業務邏輯與資料流處理區塊                    -->
+    <!-- 📍 當天無資料提示彈跳窗 (Modal)                           -->
+    <!-- ========================================================= -->
+    <div id="noDataModal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md overflow-hidden transform transition-all p-6 text-center">
+            <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4 text-2xl">
+                ⚠️
+            </div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2">系統提示</h3>
+            <p class="text-sm text-gray-600 mb-6 font-medium">今日資料尚未上傳，請聯絡存管員處理</p>
+            <div class="flex items-center justify-center gap-3">
+                <button onclick="closeNoDataModal()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition">
+                    確定
+                </button>
+            </div>
+        </div>
+    </div>
+
+<!-- ========================================================= -->
+    <!-- 📍 JavaScript 業務邏輯與資料流處理區塊                         -->
     <!-- ========================================================= -->
     <script>
+        // Supabase 資料庫連線設定與 API 金鑰常數
         const SUPABASE_URL = "https://oxuvvioaenzifebmuioi.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94dXZ2aW9hZW56aWZlYm11aW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MzE1NjYsImV4cCI6MjEwMDIwNzU2Nn0.SNk6UuvAMbxo0RvzxCfOLAfnn32jyZt0hFkoP0Lk7Vw";
-        const BUCKET_NAME = "daily-files";
-        const BASE_CSV_URL = "https://oxuvvioaenzifebmuioi.supabase.co/storage/v1/object/public/daily-files/base.csv";
+        const BUCKET_NAME = "daily-files"; // 儲存庫名稱
+        const BASE_CSV_URL = "https://oxuvvioaenzifebmuioi.supabase.co/storage/v1/object/public/daily-files/base.csv"; // 基礎 CSV 檔案公開網址
 
+        // 全域變數：分頁資料集、Supabase 用戶端實例、CSV 對應 Map 與允許的使用者清單
         let tab1Data = [];
         let tab2Data = [];
         let tab3Data = [];
         let supabaseClient = null;
         let baseCsvMap = new Map();
+        let allowedUsersList = [];
 
+        /**
+         * 非同步取得允許操作的使用者清單（從 Supabase 的 allowed_users 資料表）
+         */
+        async function fetchAllowedUsers() {
+            // 初始化 Supabase 用戶端，若失敗則中止
+            if (!initSupabaseClient()) return;
+            try {
+                // 從 allowed_users 資料表查詢所有資料
+                const { data, error } = await supabaseClient
+                    .from('allowed_users')
+                    .select('*');
+
+                // 若查詢發生錯誤，印出警告並改用預設的單位選項
+                if (error) {
+                    console.warn('擷取 allowed_users 失敗，使用預設單位選單:', error);
+                    useDefaultUserOptions();
+                    return;
+                }
+
+                // 若成功取得資料，將其對應轉換為統一格式的物件陣列，並建立部門下拉選單
+                if (data && data.length > 0) {
+                    allowedUsersList = data.map(row => ({
+                        dept: row.department || row.dept || row.service_unit || row.unit || '其他單位',
+                        name: row.name || row.full_name || row.user_name || row.username || '未知名稱'
+                    }));
+                    populateDepartmentDropdown();
+                } else {
+                    useDefaultUserOptions();
+                }
+            } catch (err) {
+                // 捕捉異常狀況，改用預設選項
+                console.warn('存取 allowed_users 異常:', err);
+                useDefaultUserOptions();
+            }
+        }
+
+        /**
+         * 填入部門（單位）下拉選單選項
+         */
+        function populateDepartmentDropdown() {
+            const deptSelect = document.getElementById('userDepartment');
+            if (!deptSelect) return;
+
+            // 萃取出所有不重複且有效的部門名稱
+            const depts = Array.from(new Set(allowedUsersList.map(u => u.dept))).filter(Boolean);
+            
+            // 若無有效部門，則使用預設選項
+            if (depts.length === 0) {
+                useDefaultUserOptions();
+                return;
+            }
+
+            // 組合部門下拉選單的 HTML 字串，並進行排序
+            let html = '<option value="">-- 請選擇單位 --</option>';
+            depts.sort().forEach(dept => {
+                html += `<option value="${dept}">${dept}</option>`;
+            });
+            deptSelect.innerHTML = html;
+            
+            // 觸發部門變更事件以連動姓名選單
+            onDepartmentChange();
+        }
+
+        /**
+         * 當部門下拉選單變更時觸發，用來連動更新對應的姓名選單
+         */
+        function onDepartmentChange() {
+            const selectedDept = document.getElementById('userDepartment').value;
+            const nameSelect = document.getElementById('userFullName');
+            if (!nameSelect) return;
+
+            // 若未選擇部門，重設姓名選單提示
+            if (!selectedDept) {
+                nameSelect.innerHTML = '<option value="">-- 請先選擇單位 --</option>';
+                return;
+            }
+
+            // 過濾出屬於該部門的使用者清單
+            const filteredUsers = allowedUsersList.filter(u => u.dept === selectedDept);
+            if (filteredUsers.length === 0) {
+                nameSelect.innerHTML = '<option value="">-- 無相符人員 --</option>';
+                return;
+            }
+
+            // 建立對應的姓名選單選項 HTML
+            let html = '<option value="">-- 請選擇姓名 --</option>';
+            filteredUsers.forEach(u => {
+                html += `<option value="${u.name}">${u.name}</option>`;
+            });
+            nameSelect.innerHTML = html;
+        }
+
+        /**
+         * 當無法從資料庫取得使用者時，載入預設的單位與姓名選項
+         */
+        function useDefaultUserOptions() {
+            const deptSelect = document.getElementById('userDepartment');
+            const nameSelect = document.getElementById('userFullName');
+            
+            const defaultDepts = ["資材部", "資材-倉儲科", "資材-採購科", "製造一部", "製造二部", "研發部", "品保部", "生管部", "其他單位"];
+            if (deptSelect) {
+                let html = '<option value="">-- 請選擇單位 --</option>';
+                defaultDepts.forEach(d => { html += `<option value="${d}">${d}</option>`; });
+                deptSelect.innerHTML = html;
+            }
+
+            if (nameSelect) {
+                nameSelect.innerHTML = '<option value="">-- 請選擇或手動輸入姓名 --</option>';
+            }
+        }
+
+        /**
+         * 非同步從遠端載入基礎對照表 CSV 檔案
+         */
         async function loadBaseCsv() {
             try {
                 const response = await fetch(BASE_CSV_URL);
                 if (response.ok) {
                     const text = await response.text();
-                    parseBaseCsv(text);
+                    parseBaseCsv(text); // 解析 CSV 內容
                 }
             } catch (err) {
                 console.warn("無法載入 base.csv:", err);
             }
         }
 
+        /**
+         * 處理 CSV 單行解析，正確處理引號包覆與逗號分隔的問題
+         * @param {string} line - CSV 的單行字串
+         * @returns {Array<string>} 切割後的欄位陣列
+         */
         function splitCsvLine(line) {
             const result = [];
             let cur = '';
-            let inQuotes = false;
+            let inQuotes = false; // 標記目前是否處於引號內部
             for (let i = 0; i < line.length; i++) {
                 const c = line[i];
                 if (c === '"') {
-                    inQuotes = !inQuotes;
+                    inQuotes = !inQuotes; // 切換引號狀態
                 } else if (c === ',' && !inQuotes) {
+                    // 若遇到逗號且不在引號內，代表一個欄位結束
                     result.push(cur.trim().replace(/^"|"$/g, ''));
                     cur = '';
                 } else {
                     cur += c;
                 }
             }
+            // 推入最後一個欄位
             result.push(cur.trim().replace(/^"|"$/g, ''));
             return result;
         }
 
+        /**
+         * 解析基礎 CSV 檔案文字內容，建立對應查詢對照表（Map）
+         * @param {string} text - CSV 完整文字內容
+         */
         function parseBaseCsv(text) {
             baseCsvMap.clear();
+            // 依照換行分割並過濾空白行
             const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
             if (lines.length < 2) return;
 
+            // 取得標題列並尋找對應欄位索引
             const headers = splitCsvLine(lines[0]);
             let whIdx = -1, matIdx = -1, deptIdx = -1;
 
             headers.forEach((h, idx) => {
                 const hUpper = h.toUpperCase();
+                // 尋找包含倉庫相關字眼的欄位索引
                 if (hUpper.includes("庫") || hUpper.includes("WAREHOUSE") || hUpper.includes("WH")) {
                     if (whIdx === -1) whIdx = idx;
                 }
+                // 尋找包含材料或料號相關字眼的欄位索引
                 if (hUpper.includes("材料") || hUpper.includes("料號") || hUpper.includes("MATERIAL")) {
                     if (matIdx === -1) matIdx = idx;
                 }
+                // 尋找包含部門或訂購相關字眼的欄位索引
                 if (hUpper.includes("訂購") || hUpper.includes("部門") || hUpper.includes("DEPT")) {
                     if (deptIdx === -1) deptIdx = idx;
                 }
             });
 
+            // 設定預設的欄位索引備用值
             if (whIdx === -1) whIdx = 0;
             if (matIdx === -1) matIdx = 1;
             if (deptIdx === -1 || deptIdx < 12) deptIdx = 12;
 
+            // 逐行讀取資料內容並建立對應對照（Key: 倉庫|料號, Value: 部門）
             for (let i = 1; i < lines.length; i++) {
                 const cols = splitCsvLine(lines[i]);
                 if (cols.length > Math.max(whIdx, matIdx, deptIdx)) {
@@ -471,61 +883,174 @@
             }
         }
 
+        /**
+         * 透過倉庫與材料編號尋找對應的訂購部門
+         * @param {string} warehouse - 倉庫代號/名稱
+         * @param {string} materialId - 材料編號
+         * @returns {string} 找到的部門名稱，若無則回傳 '-'
+         */
         function findOrderDept(warehouse, materialId) {
             if (!warehouse || !materialId) return '-';
             return baseCsvMap.get(`${warehouse}|${materialId}`) || '-';
         }
 
+        /**
+         * 將各式日期字串標準化轉換為 ISO 格式（YYYY-MM-DD）
+         * @param {string} dStr - 原始日期字串
+         * @returns {string} 標準化後的日期字串
+         */
         function normalizeDateToISO(dStr) {
             if (!dStr) return '';
+            // 將斜線或點取代為橫線
             let str = String(dStr).trim().replace(/\//g, '-').replace(/\./g, '-');
+            // 若為 8 位數且無橫線的純數字格式（如 YYYYMMDD），自動加上橫線
             if (str.length === 8 && !str.includes('-')) {
                 return `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`;
             }
             return str;
         }
 
-        const processingStatusMap = new Map();
+
+        
+// 狀態歷史記錄列表與目前正在編輯的狀態鍵值
+        let statusHistoryList = []; 
         let currentEditingStatusKey = null;
 
+        /**
+         * 取得特定材料在指定日期的處理狀態（支援 10 天內的歷史回溯與繼承機制）
+         * @param {string} warehouse - 倉庫代號/名稱
+         * @param {string} materialId - 材料編號
+         * @param {string} dateStr - 查詢日期字串
+         * @returns {Object} 包含狀態、備註、處理者、是否繼承等屬性的物件
+         */
+        function getStatusForMaterial(warehouse, materialId, dateStr) {
+            const normDate = normalizeDateToISO(dateStr);
+            // 若缺乏必要參數或日期無效，回傳預設的「未處理」狀態
+            if (!normDate || !warehouse || !materialId) {
+                return { status: '未處理', note: '', handler: '', inherited: false, inheritedDate: null };
+            }
+
+            const targetTime = new Date(normDate).getTime();
+            if (isNaN(targetTime)) {
+                return { status: '未處理', note: '', handler: '', inherited: false, inheritedDate: null };
+            }
+
+            // 計算 10 天的毫秒數，設定往前追溯的截止時間
+            const tenDaysInMs = 10 * 24 * 60 * 60 * 1000;
+            const cutoffTime = targetTime - tenDaysInMs;
+
+            // 從歷史紀錄中篩選出符合該倉庫、料號，且日期介於目標日期前 10 天到目標日期之間的候選資料
+            const candidates = statusHistoryList.filter(item => {
+                if (item.warehouse !== warehouse || item.materialId !== materialId) return false;
+                const itemTime = new Date(item.reportDate).getTime();
+                return !isNaN(itemTime) && itemTime <= targetTime && itemTime >= cutoffTime;
+            });
+
+            // 若找不到任何候選紀錄，回傳預設狀態
+            if (candidates.length === 0) {
+                return { status: '未處理', note: '', handler: '', inherited: false, inheritedDate: null };
+            }
+
+            // 將候選紀錄排序：依回報日期由新到舊排序；若日期相同，則依最後更新時間（updatedAt）由新到舊排序
+            candidates.sort((a, b) => {
+                const tA = new Date(a.reportDate).getTime();
+                const tB = new Date(b.reportDate).getTime();
+                if (tA !== tB) return tB - tA;
+                const uA = new Date(a.updatedAt || 0).getTime();
+                const uB = new Date(b.updatedAt || 0).getTime();
+                return uB - uA;
+            });
+
+            // 取出排序後最新的一筆紀錄
+            const latest = candidates[0];
+            // 判斷該筆最新紀錄是否為繼承自過去（即回報日期不等於目標查詢日期）
+            const isInherited = latest.reportDate !== normDate;
+
+            return {
+                status: latest.status || '未處理',
+                note: latest.note || '',
+                handler: latest.handler || '',
+                inheritedDate: isInherited ? latest.reportDate : null,
+                inherited: isInherited
+            };
+        }
+
+        /**
+         * 開啟處理進度編輯彈跳視窗（Modal），並帶入對應的物料與狀態資訊
+         * @param {string} key - 狀態識別鍵值
+         * @param {string} warehouse - 倉庫代號/名稱
+         * @param {string} materialId - 材料編號
+         * @param {string} date - 日期
+         */
         function openProcessStatusModal(key, warehouse, materialId, date) {
             currentEditingStatusKey = key;
-            const currentData = processingStatusMap.get(key) || { status: '未處理', note: '', handler: '' };
-            const dataObj = (typeof currentData === 'string') 
-                ? { status: currentData, note: '', handler: '' } 
-                : currentData;
+            const normDate = normalizeDateToISO(date);
+            const statusObj = getStatusForMaterial(warehouse, materialId, normDate);
 
+            // 將資料填入隱藏的表單欄位中以供後續儲存使用
             document.getElementById('modalWarehouse').value = warehouse || '';
             document.getElementById('modalMaterialId').value = materialId || '';
-            document.getElementById('modalReportDate').value = date || '';
+            document.getElementById('modalReportDate').value = normDate || '';
 
+            // 將資料填入介面顯示文字區塊
             document.getElementById('modalWarehouseDisplay').textContent = warehouse || '--';
             document.getElementById('modalMaterialDisplay').textContent = materialId || '--';
-            document.getElementById('modalDateDisplay').textContent = date || '--';
+            document.getElementById('modalDateDisplay').textContent = normDate || '--';
 
+            // 設定狀態下拉選單數值
             const statusSelect = document.getElementById('modalStatus');
-            if (statusSelect) statusSelect.value = dataObj.status || '未處理';
+            if (statusSelect) statusSelect.value = statusObj.status || '未處理';
 
+            // 設定備註內容
             const noteInput = document.getElementById('modalNotes');
-            if (noteInput) noteInput.value = dataObj.note || '';
+            if (noteInput) noteInput.value = statusObj.note || '';
 
+            // 設定處理人員欄位（優先帶入目前登入使用者的姓名）
             const handlerInput = document.getElementById('modalUpdatedBy');
-            if (handlerInput) handlerInput.value = dataObj.handler || '';
+            if (handlerInput) {
+                const currentName = sessionStorage.getItem('userFullName') || sessionStorage.getItem('loggedInUser') || '';
+                handlerInput.value = currentName || statusObj.handler || '';
+            }
             
+            // 移除隱藏樣式以顯示彈跳視窗
             const modal = document.getElementById('progressModal');
             if (modal) modal.classList.remove('hidden');
         }
 
+        /**
+         * 關閉處理進度編輯彈跳視窗，並清空目前編輯的鍵值
+         */
         function closeProgressModal() {
             currentEditingStatusKey = null;
             const modal = document.getElementById('progressModal');
             if (modal) modal.classList.add('hidden');
         }
 
+        /**
+         * 顯示「無資料」提示彈跳視窗
+         */
+        function showNoDataModal() {
+            const modal = document.getElementById('noDataModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        /**
+         * 關閉「無資料」提示彈跳視窗
+         */
+        function closeNoDataModal() {
+            const modal = document.getElementById('noDataModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        /**
+         * 非同步儲存處理進度表單資料（更新前端陣列並同步寫入 Supabase 資料庫）
+         * @param {Event} event - 提交事件物件
+         */
         async function handleSaveProgress(event) {
             if (event) event.preventDefault();
             if (!currentEditingStatusKey) return;
 
+            // 取得表單欄位中的資料
             const warehouse = document.getElementById('modalWarehouse').value;
             const materialId = document.getElementById('modalMaterialId').value;
             const rawReportDate = document.getElementById('modalReportDate').value;
@@ -539,11 +1064,34 @@
             const notes = noteInput ? noteInput.value.trim() : '';
             const updatedBy = handlerInput ? handlerInput.value.trim() : '';
 
-            processingStatusMap.set(currentEditingStatusKey, { status, note: notes, handler: updatedBy });
+            const nowIso = new Date().toISOString();
+            // 檢查前端歷史清單中是否已存在相同倉庫、料號與日期的紀錄
+            const existingIdx = statusHistoryList.findIndex(
+                item => item.warehouse === warehouse && item.materialId === materialId && item.reportDate === reportDate
+            );
 
+            // 建立新的狀態記錄物件
+            const newRecord = {
+                reportDate,
+                warehouse,
+                materialId,
+                status,
+                note: notes,
+                handler: updatedBy,
+                updatedAt: nowIso
+            };
+
+            // 若存在則進行覆蓋更新，否則新增至陣列中
+            if (existingIdx >= 0) {
+                statusHistoryList[existingIdx] = newRecord;
+            } else {
+                statusHistoryList.push(newRecord);
+            }
+
+            // 若 Supabase 用戶端已初始化，則將資料同步寫入後端資料庫
             if (supabaseClient) {
                 const saveBtn = document.getElementById('saveProgressBtn');
-                if (saveBtn) saveBtn.disabled = true;
+                if (saveBtn) saveBtn.disabled = true; // 儲存時禁用按鈕防範重複點擊
 
                 try {
                     const payload = {
@@ -553,9 +1101,10 @@
                         status: status,
                         notes: notes,
                         updated_by: updatedBy,
-                        updated_at: new Date().toISOString()
+                        updated_at: nowIso
                     };
 
+                    // 先查詢後端資料庫是否已有該筆紀錄存在
                     const { data: existingRecords, error: searchErr } = await supabaseClient
                         .from('out_of_stock_items')
                         .select('id')
@@ -565,18 +1114,21 @@
 
                     let dbErr = null;
                     if (!searchErr && existingRecords && existingRecords.length > 0) {
+                        // 若已存在則執行更新（Update）
                         const { error } = await supabaseClient
                             .from('out_of_stock_items')
                             .update(payload)
                             .eq('id', existingRecords[0].id);
                         dbErr = error;
                     } else {
+                        // 若不存在則執行新增（Insert）
                         const { error } = await supabaseClient
                             .from('out_of_stock_items')
                             .insert(payload);
                         dbErr = error;
                     }
 
+                    // 處理資料庫錯誤訊息
                     if (dbErr) {
                         console.error('Supabase 儲存至 out_of_stock_items 失敗:', dbErr);
                         if (dbErr.code === '42501') {
@@ -589,10 +1141,11 @@
                     console.error('連線 Supabase 儲存失敗:', err);
                     showError(`連線 Supabase 失敗: ${err.message}`);
                 } finally {
-                    if (saveBtn) saveBtn.disabled = false;
+                    if (saveBtn) saveBtn.disabled = false; // 恢復按鈕可點擊狀態
                 }
             }
 
+            // 關閉彈跳視窗並重新渲染第一頁表格畫面
             closeProgressModal();
             renderTab1();
         }
@@ -764,6 +1317,7 @@
                     updateStatusBadge('warning', '無當日資料');
                     if (detailText) detailText.innerHTML = `在 Bucket (${BUCKET_NAME}) 未找到 ${iso} (${ymd}) 的相關檔案。<a href="#" onclick="loadMockData(); return false;" class="text-indigo-600 underline font-semibold">點此載入範例資料</a>進行預覽。`;
                     renderAllTabs();
+                    showNoDataModal();
                     return;
                 }
 
@@ -792,15 +1346,15 @@
                             .select('*');
                         
                         if (!statusErr && statusRecords) {
-                            statusRecords.forEach(rec => {
-                                const normDate = normalizeDateToISO(rec.report_date);
-                                const key = `${normDate}|${rec.warehouse}|${rec.material_id}`;
-                                processingStatusMap.set(key, {
-                                    status: rec.status,
-                                    note: rec.notes || '',
-                                    handler: rec.updated_by || ''
-                                });
-                            });
+                            statusHistoryList = statusRecords.map(rec => ({
+                                reportDate: normalizeDateToISO(rec.report_date),
+                                warehouse: rec.warehouse,
+                                materialId: rec.material_id,
+                                status: rec.status,
+                                note: rec.notes || '',
+                                handler: rec.updated_by || '',
+                                updatedAt: rec.updated_at || rec.created_at || ''
+                            }));
                         }
                     } catch (e) {
                         console.warn('無法獲取 out_of_stock_items 歷史進度:', e);
@@ -808,6 +1362,10 @@
                 }
 
                 renderAllTabs();
+
+                if (tab1Data.length === 0 && tab2Data.length === 0 && tab3Data.length === 0) {
+                    showNoDataModal();
+                }
 
             } catch (err) {
                 console.error(err);
@@ -860,6 +1418,21 @@
             let warehouseFromFilename = fileName.substring(0, 2).toUpperCase();
             if (!["MA", "GA", "KA"].includes(warehouseFromFilename)) warehouseFromFilename = "MA";
             
+            const formatEndDate = (val) => {
+                const s = String(val || '').trim();
+                if (!s || s.toLowerCase() === 'empty' || s === '0') {
+                    const today = new Date();
+                    return `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
+                }
+                if (s.length === 7) {
+                    const year = parseInt(s.substring(0, 3)) + 1911;
+                    const month = s.substring(3, 5);
+                    const day = s.substring(5, 7);
+                    return `${year}/${month}/${day}`;
+                }
+                return s;
+            };
+
             for (let i = 1; i < lines.length; i++) {
                 const cols = lines[i].split(';').map(c => c.trim());
                 if (cols.length < 5) continue;
@@ -871,7 +1444,7 @@
                     delivery: cols[3],
                     monthlyQty: formatLeadingZeros(cols[4]), 
                     stockQty: formatLeadingZeros(cols[5]), 
-                    endDate: cols[6], 
+                    endDate: formatEndDate(cols[6]), 
                     reqNo: cols[7],
                     reqDate: cols[8], 
                     needDate: cols[9], 
@@ -996,7 +1569,6 @@
                 select.value = 'ALL';
             }
 
-            // 📍 更新批號篩選下拉選單選項
             const batchSelect = document.getElementById('batchFilterSelect');
             if (batchSelect) {
                 const currentBatchVal = batchSelect.value;
@@ -1046,190 +1618,457 @@
             renderTab3();
         }
 
-        function renderTab1() {
-            const tbody = document.getElementById('resultBodyTab1');
-            if (!tbody) return;
-            if (tab1Data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="13" class="px-6 py-10 text-center text-gray-400 italic">無 SHORT25D 或 SHORT25E 資料。</td></tr>`;
-                return;
-            }
+        <!-- ========================================================= -->
+        <!-- 渲染第一頁（Tab 1）缺貨資料表格-->
+        <!-- ========================================================= -->
             
-            const selectedWh = document.getElementById('warehouseFilterSelect')?.value || 'ALL';
-            const filteredData = selectedWh === 'ALL' ? tab1Data : tab1Data.filter(item => item.warehouse === selectedWh);
+/**
+ * 渲染第一頁（Tab 1）缺貨資料表格
+ */
+// 記錄目前的排序狀態 (請確保這兩個全域變數宣告在函式外面或檔案上方)
+let currentSortColumn = null;
+let currentSortDirection = 'asc'; // 'asc' 為升冪, 'desc' 為降冪
 
-            if (filteredData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="13" class="px-6 py-10 text-center text-gray-400 italic">供應庫「${selectedWh}」無符合之缺貨資料。</td></tr>`;
-                return;
+function sortTab1(column) {
+    if (currentSortColumn === column) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortColumn = column;
+        currentSortDirection = 'asc';
+    }
+    renderTab1();
+}
+
+function updateSortIcons() {
+    const headers = ['progress', 'date', 'warehouse', 'materialId', 'spec', 'unit', 'shortCount', 'category', 'remark', 'orderType', 'reqNo', 'vendor', 'phone'];
+    headers.forEach(col => {
+        const span = document.getElementById(`sort-${col}`);
+        if (span) span.textContent = '';
+    });
+    if (currentSortColumn) {
+        const activeSpan = document.getElementById(`sort-${currentSortColumn}`);
+        if (activeSpan) {
+            activeSpan.textContent = currentSortDirection === 'asc' ? ' ▲' : ' ▼';
+        }
+    }
+}
+
+function renderTab1() {
+    const tbody = document.getElementById('resultBodyTab1');
+    if (!tbody) return;
+    // 若無原始資料，顯示提示訊息
+    if (tab1Data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="13" class="px-6 py-10 text-center text-gray-400 italic">無 SHORT25D 或 SHORT25E 資料。</td></tr>`;
+        return;
+    }
+    
+    // 取得目前的倉庫篩選條件，並進行資料過濾
+    const selectedWh = document.getElementById('warehouseFilterSelect')?.value || 'ALL';
+    const filteredData = selectedWh === 'ALL' ? tab1Data : tab1Data.filter(item => item.warehouse === selectedWh);
+
+    // 若過濾後無資料，顯示對應提示
+    if (filteredData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="13" class="px-6 py-10 text-center text-gray-400 italic">供應庫「${selectedWh}」無符合之缺貨資料。</td></tr>`;
+        return;
+    }
+
+    const summaryMap = new Map();
+    const materialTotalCountMap = new Map(); 
+
+    // 統計與彙整資料（以日期、倉庫、料號為 Key 進行群組加總）
+    filteredData.forEach(item => {
+        const key = `${item.date}|${item.warehouse}|${item.materialId}`;
+        materialTotalCountMap.set(item.materialId, (materialTotalCountMap.get(item.materialId) || 0) + 1);
+        
+        if (summaryMap.has(key)) {
+            summaryMap.get(key).count++;
+            summaryMap.get(key).sources.add(item.source);
+        } else {
+            summaryMap.set(key, { ...item, count: 1, sources: new Set([item.source]) });
+        }
+    });
+
+    // 預設排序或倉庫優先級排序
+    const warehousePriority = { "MA": 1, "GA": 2, "KA": 3 };
+    let sortedData = Array.from(summaryMap.values()).sort((a, b) => {
+        const pA = warehousePriority[a.warehouse] || 99;
+        const pB = warehousePriority[b.warehouse] || 99;
+        if (pA !== pB) return pA - pB;
+        if (pA === 99 && pB === 99 && a.warehouse !== b.warehouse) return a.warehouse.localeCompare(b.warehouse);
+        return a.materialId.localeCompare(b.materialId);
+    });
+
+    // ==================== 🛠️ 在這裡加入使用者點擊表頭後的自訂排序邏輯 ====================
+    if (currentSortColumn) {
+        sortedData.sort((a, b) => {
+            let valA, valB;
+
+            // 針對各個欄位計算其排序值
+            if (currentSortColumn === 'progress') {
+                valA = getStatusForMaterial(a.warehouse, a.materialId, normalizeDateToISO(a.date)).status || '未處理';
+                valB = getStatusForMaterial(b.warehouse, b.materialId, normalizeDateToISO(b.date)).status || '未處理';
+            } else if (currentSortColumn === 'spec') {
+                valA = findSpecByMaterialId(a.materialId) || '';
+                valB = findSpecByMaterialId(b.materialId) || '';
+            } else if (currentSortColumn === 'shortCount') {
+                valA = Number(a.count) || 0;
+                valB = Number(b.count) || 0;
+            } else if (currentSortColumn === 'category') {
+                valA = Array.from(a.sources).join(',');
+                valB = Array.from(b.sources).join(',');
+            } else if (currentSortColumn === 'remark') {
+                // 備註欄位單純用字串或簡易邏輯
+                valA = (materialTotalCountMap.get(a.materialId) > a.count) ? '多庫別' : '';
+                valB = (materialTotalCountMap.get(b.materialId) > b.count) ? '多庫別' : '';
+            } else if (currentSortColumn === 'orderType') {
+                valA = findOrderDept(a.warehouse, a.materialId) || '';
+                valB = findOrderDept(b.warehouse, b.materialId) || '';
+            } else if (currentSortColumn === 'reqNo') {
+                valA = findOnWayInfo(a.materialId, a.warehouse).reqNo || '';
+                valB = findOnWayInfo(b.materialId, b.warehouse).reqNo || '';
+            } else if (currentSortColumn === 'vendor') {
+                valA = findOnWayInfo(a.materialId, a.warehouse).vendorShort || '';
+                valB = findOnWayInfo(b.materialId, b.warehouse).vendorShort || '';
+            } else if (currentSortColumn === 'phone') {
+                valA = findOnWayInfo(a.materialId, a.warehouse).phone || '';
+                valB = findOnWayInfo(b.materialId, b.warehouse).phone || '';
+            } else {
+                // 一般直屬屬性 (date, warehouse, materialId, unit 等)
+                valA = a[currentSortColumn] ?? '';
+                valB = b[currentSortColumn] ?? '';
             }
 
-            const summaryMap = new Map();
-            const materialTotalCountMap = new Map(); 
+            // 數值與字串比對
+            if (typeof valA === 'number' && typeof valB === 'number') {
+                return currentSortDirection === 'asc' ? valA - valB : valB - valA;
+            } else {
+                valA = String(valA).toLowerCase();
+                valB = String(valB).toLowerCase();
+                let comp = valA.localeCompare(valB, 'zh-Hant');
+                return currentSortDirection === 'asc' ? comp : -comp;
+            }
+        });
+    }
 
-            filteredData.forEach(item => {
-                const key = `${item.date}|${item.warehouse}|${item.materialId}`;
-                materialTotalCountMap.set(item.materialId, (materialTotalCountMap.get(item.materialId) || 0) + 1);
-                
-                if (summaryMap.has(key)) {
-                    summaryMap.get(key).count++;
-                    summaryMap.get(key).sources.add(item.source);
-                } else {
-                    summaryMap.set(key, { ...item, count: 1, sources: new Set([item.source]) });
-                }
-            });
+    // 更新表頭箭頭顯示
+    updateSortIcons();
+    // ==============================================================================
 
-            const warehousePriority = { "MA": 1, "GA": 2, "KA": 3 };
-            const sortedData = Array.from(summaryMap.values()).sort((a, b) => {
-                const pA = warehousePriority[a.warehouse] || 99;
-                const pB = warehousePriority[b.warehouse] || 99;
-                if (pA !== pB) return pA - pB;
-                if (pA === 99 && pB === 99 && a.warehouse !== b.warehouse) return a.warehouse.localeCompare(b.warehouse);
-                return a.materialId.localeCompare(b.materialId);
-            });
+    // 統計各供應商出現的次數，用以判斷是否有重複訂購狀況
+    const vendorCountMap = new Map();
+    sortedData.forEach(row => {
+        const onWay = findOnWayInfo(row.materialId, row.warehouse);
+        const vShort = onWay.vendorShort;
+        if (vShort && vShort !== '-') {
+            vendorCountMap.set(vShort, (vendorCountMap.get(vShort) || 0) + 1);
+        }
+    });
 
-            const vendorCountMap = new Map();
-            sortedData.forEach(row => {
-                const onWay = findOnWayInfo(row.materialId, row.warehouse);
-                const vShort = onWay.vendorShort;
-                if (vShort && vShort !== '-') {
-                    vendorCountMap.set(vShort, (vendorCountMap.get(vShort) || 0) + 1);
-                }
-            });
+    // ==================== 1. 動態生成供應商下拉選單選項 ====================
+    const vendorSelectEl = document.getElementById('vendorFilterSelect');
+    if (vendorSelectEl) {
+        const currentSelectedVendor = vendorSelectEl.value || 'ALL';
+        const uniqueVendors = new Set();
+        sortedData.forEach(row => {
+            const onWay = findOnWayInfo(row.materialId, row.warehouse);
+            const vShort = onWay.vendorShort;
+            if (vShort && vShort.trim() !== '' && vShort !== '-') {
+                uniqueVendors.add(vShort.trim());
+            }
+        });
+        const sortedVendors = Array.from(uniqueVendors).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
 
-            tbody.innerHTML = sortedData.map(row => {
-                const isRepeatedAcrossSet = materialTotalCountMap.get(row.materialId) > row.count;
-                const spec = findSpecByMaterialId(row.materialId);
-                const orderDept = findOrderDept(row.warehouse, row.materialId);
-                
-                let remark = '-';
-                if (isRepeatedAcrossSet) {
-                    remark = '<span class="text-red-600 bg-red-50 px-1.5 py-0.5 rounded font-semibold">多庫別</span>';
-                } else if (["MA", "GA", "KA"].includes(row.warehouse) && (spec === '-' || !spec)) {
-                    remark = '<span class="text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded font-semibold">可能沒存管或為0</span>';
-                }
-                
-                const onWay = findOnWayInfo(row.materialId, row.warehouse);
+        let vendorOptionsHTML = `<option value="ALL">全部供應商</option>`;
+        vendorOptionsHTML += `<option value="尚未訂購">尚未訂購</option>`;
+        sortedVendors.forEach(v => {
+            const selectedAttr = (currentSelectedVendor === v) ? 'selected' : '';
+            vendorOptionsHTML += `<option value="${v}" ${selectedAttr}>${v}</option>`;
+        });
+        
+        vendorSelectEl.innerHTML = vendorOptionsHTML;
+        if (currentSelectedVendor !== 'ALL' && currentSelectedVendor !== '尚未訂購' && !uniqueVendors.has(currentSelectedVendor)) {
+            vendorSelectEl.value = 'ALL';
+        } else {
+            vendorSelectEl.value = currentSelectedVendor;
+        }
+    }
 
-                const hasReqNo = onWay.reqNo && onWay.reqNo !== '-' && onWay.reqNo.trim() !== '';
-                const reqNoDisplay = hasReqNo 
-                    ? `<span class="font-mono text-indigo-700">${onWay.reqNo}</span>`
-                    : `<span class="bg-green-600 text-white font-bold px-2 py-0.5 rounded shadow-sm inline-block">無請購案號</span>`;
+    // 取得目前的篩選條件（處理進度 & 供應商）
+    const selectedProgress = document.getElementById('progressFilterSelect')?.value || 'ALL';
+    const selectedVendor = document.getElementById('vendorFilterSelect')?.value || 'ALL';
 
-                const hasVendor = onWay.vendorShort && onWay.vendorShort !== '-' && onWay.vendorShort.trim() !== '';
-                const isVendorDuplicate = hasVendor && (vendorCountMap.get(onWay.vendorShort) || 0) > 1;
-                
-                let vendorDisplay = '';
-                if (!hasVendor) {
-                    vendorDisplay = `<span class="bg-red-600 text-white font-bold px-2 py-0.5 rounded shadow-sm inline-block">尚未訂購</span>`;
-                } else if (isVendorDuplicate) {
-                    vendorDisplay = `<span class="bg-yellow-200 text-yellow-900 px-2 py-0.5 rounded font-bold shadow-sm inline-block">${onWay.vendorShort}</span>`;
-                } else {
-                    vendorDisplay = `<span class="font-semibold text-indigo-700">${onWay.vendorShort}</span>`;
-                }
+    // 逐筆生成表格列（tr）的 HTML 內容
+    const rowsHTML = sortedData.map(row => {
+        const normDate = normalizeDateToISO(row.date);
+        const statusObj = getStatusForMaterial(row.warehouse, row.materialId, normDate);
+        const status = statusObj.status || '未處理';
+        const onWay = findOnWayInfo(row.materialId, row.warehouse);
+        const vendorShort = (onWay.vendorShort && onWay.vendorShort.trim() !== '' && onWay.vendorShort !== '-') ? onWay.vendorShort.trim() : '尚未訂購';
 
-                const normDate = normalizeDateToISO(row.date);
-                const itemKey = `${normDate}|${row.warehouse}|${row.materialId}`;
-                const rawStatus = processingStatusMap.get(itemKey) || processingStatusMap.get(`${row.date}|${row.warehouse}|${row.materialId}`);
-                
-                const statusObj = (typeof rawStatus === 'string') 
-                    ? { status: rawStatus, note: '', handler: '' } 
-                    : (rawStatus || { status: '未處理', note: '', handler: '' });
+        return { row, status, statusObj, normDate, vendorShort };
+    }).filter(({ status, vendorShort }) => {
+        const matchProgress = (selectedProgress === 'ALL' || status === selectedProgress);
+        const matchVendor = (selectedVendor === 'ALL' || vendorShort === selectedVendor);
+        return matchProgress && matchVendor;
+    }).map(({ row, status, statusObj, normDate }) => {
+        const isRepeatedAcrossSet = materialTotalCountMap.get(row.materialId) > row.count;
+        const spec = findSpecByMaterialId(row.materialId);
+        const orderDept = findOrderDept(row.warehouse, row.materialId);
+        
+        let remark = '-';
+        if (isRepeatedAcrossSet) {
+            remark = '<span class="text-red-600 bg-red-50 px-1.5 py-0.5 rounded font-semibold">多庫別</span>';
+        } else if (["MA", "GA", "KA"].includes(row.warehouse) && (spec === '-' || !spec)) {
+            remark = '<span class="text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded font-semibold">可能沒存管或為0</span>';
+        }
+        
+        const onWay = findOnWayInfo(row.materialId, row.warehouse);
 
-                const status = statusObj.status || '未處理';
+        const hasReqNo = onWay.reqNo && onWay.reqNo !== '-' && onWay.reqNo.trim() !== '';
+        const reqNoDisplay = hasReqNo 
+            ? `<span class="font-mono text-indigo-700">${onWay.reqNo}</span>`
+            : `<span class="bg-green-600 text-white font-bold px-2 py-0.5 rounded shadow-sm inline-block">無請購案號</span>`;
 
-                let statusBadgeClass = 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200';
-                let statusIcon = '📝';
-                if (status === '未處理') {
-                    statusBadgeClass = 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100';
-                    statusIcon = '⏳';
-                } else if (status === '詢價/請購中') {
-                    statusBadgeClass = 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100';
-                    statusIcon = '📄';
-                } else if (status === '在途運輸中') {
-                    statusBadgeClass = 'bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100';
-                    statusIcon = '🚚';
-                } else if (status === '已到貨入庫') {
-                    statusBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100';
-                    statusIcon = '✅';
-                } else if (status === '延遲待追蹤') {
-                    statusBadgeClass = 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100';
-                    statusIcon = '🚨';
-                }
-
-                let statusDisplayText = `${statusIcon} ${status}`;
-                if (statusObj.handler) {
-                    statusDisplayText += ` (${statusObj.handler})`;
-                }
-
-                const statusBtn = `
-                    <button onclick="openProcessStatusModal('${itemKey}', '${row.warehouse}', '${row.materialId}', '${normDate}')" title="${statusObj.note ? '說明: ' + statusObj.note : '點擊更新處理進度'}" class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition duration-150 inline-flex items-center gap-1 cursor-pointer ${statusBadgeClass}">
-                        <span class="max-w-[130px] truncate">${statusDisplayText}</span>
-                    </button>
-                `;
-
-                const countClass = row.count > 10 ? 'text-red-600 font-extrabold text-sm' : 'text-indigo-600 font-bold';
-
-                return `
-                <tr class="hover:bg-blue-50 border-b border-gray-100 transition whitespace-nowrap">
-                    <td class="px-4 py-3 text-center">${statusBtn}</td>
-                    <td class="px-4 py-3">${row.date}</td>
-                    <td class="px-4 py-3 font-medium text-blue-800">${row.warehouse}</td>
-                    <td class="px-4 py-3 font-mono font-semibold">${row.materialId}</td>
-                    <td class="px-4 py-3 text-gray-600 truncate max-w-[200px]">${spec}</td>
-                    <td class="px-4 py-3 text-gray-500">${row.unit || '-'}</td>
-                    <td class="px-4 py-3 text-center ${countClass}">${row.count}</td>
-                    <td class="px-4 py-3 text-center">
-                        ${Array.from(row.sources).map(s => `<span class="${s==='D'?'bg-red-500':'bg-blue-500'} text-white px-1.5 py-0.5 rounded text-[10px] mr-1">25${s}</span>`).join('')}
-                    </td>
-                    <td class="px-4 py-3 text-center font-bold">${remark}</td>
-                    <td class="px-4 py-3 font-semibold text-indigo-700">${orderDept}</td>
-                    <td class="px-4 py-3">${reqNoDisplay}</td>
-                    <td class="px-4 py-3">${vendorDisplay}</td>
-                    <td class="px-4 py-3 text-indigo-700">${onWay.phone}</td>
-                </tr>
-                `;
-            }).join('');
+        const hasVendor = onWay.vendorShort && onWay.vendorShort !== '-' && onWay.vendorShort.trim() !== '';
+        const isVendorDuplicate = hasVendor && (vendorCountMap.get(onWay.vendorShort) || 0) > 1;
+        
+        let vendorDisplay = '';
+        if (!hasVendor) {
+            vendorDisplay = `<span class="bg-red-600 text-white font-bold px-2 py-0.5 rounded shadow-sm inline-block">尚未訂購</span>`;
+        } else if (isVendorDuplicate) {
+            vendorDisplay = `<span class="bg-yellow-200 text-yellow-900 px-2 py-0.5 rounded font-bold shadow-sm inline-block">${onWay.vendorShort}</span>`;
+        } else {
+            vendorDisplay = `<span class="font-semibold text-indigo-700">${onWay.vendorShort}</span>`;
         }
 
-        function renderTab2() {
-            const tbody = document.getElementById('resultBodyTab2');
-            if (!tbody) return;
-            if (tab2Data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 italic text-sm">無 G5404 安全庫存資料。</td></tr>`;
-                return;
-            }
+        const itemKey = `${normDate}|${row.warehouse}|${row.materialId}`;
 
-            const selectedWh = document.getElementById('warehouseFilterSelect')?.value || 'ALL';
-            const filteredData = selectedWh === 'ALL' ? tab2Data : tab2Data.filter(item => item.warehouse === selectedWh);
-
-            if (filteredData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 italic text-sm">供應庫「${selectedWh}」無符合之在庫低於安全庫存資料。</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = filteredData.map(row => {
-                const vendorShort = findVendorShortById(row.vendorId);
-                return `
-                <tr class="hover:bg-indigo-50 border-b border-gray-100 transition whitespace-nowrap">
-                    <td class="px-3 py-2 font-bold text-blue-800">${row.warehouse}</td>
-                    <td class="px-3 py-2 font-mono font-semibold">${row.materialId}</td>
-                    <td class="px-3 py-2">${row.unit}</td>
-                    <td class="px-3 py-2 truncate max-w-[150px]">${row.spec}</td>
-                    <td class="px-3 py-2 text-center">${row.delivery}</td>
-                    <td class="px-3 py-2 text-right">${row.monthlyQty}</td>
-                    <td class="px-3 py-2 text-right text-red-600 font-bold">${row.stockQty}</td>
-                    <td class="px-3 py-2 text-center text-blue-600">${row.endDate}</td>
-                    <td class="px-3 py-2 font-mono">${row.reqNo}</td>
-                    <td class="px-3 py-2 text-center">${row.reqDate}</td>
-                    <td class="px-3 py-2 text-center">${row.needDate}</td>
-                    <td class="px-3 py-2 text-right text-green-600 font-semibold">${row.onWayQty}</td>
-                    <td class="px-3 py-2 text-center">${row.leadTime}</td>
-                    <td class="px-3 py-2 font-mono">${row.vendorId}</td>
-                    <td class="px-3 py-2 font-semibold text-indigo-700">${vendorShort}</td>
-                </tr>
-                `;
-            }).join('');
+        let statusBadgeClass = 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200';
+        let statusIcon = '📝';
+        if (status === '未處理') {
+            statusBadgeClass = 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100';
+            statusIcon = '⏳';
+        } else if (status === '已到貨入庫') {
+            statusBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100';
+            statusIcon = '✅';
+        } else if (status === '已洽供應商') {
+            statusBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
+            statusIcon = '📞';
+        } else if (status === '尚未訂購') {
+            statusBadgeClass = 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100';
+            statusIcon = '⚠️';
+        } else if (status === '配合交貨') {
+            statusBadgeClass = 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100';
+            statusIcon = '🤝';
+        } else if (status === '無存管') {
+            statusBadgeClass = 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200';
+            statusIcon = '🚫';
+        } else if (status === '02附圖') {
+            statusBadgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100';
+            statusIcon = '📐';
+        } else if (status === '03調撥') {
+            statusBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100';
+            statusIcon = '🔄';
+        } else if (status === '異常事項') {
+            statusBadgeClass = 'bg-red-100 text-red-800 border-red-300 hover:bg-red-200';
+            statusIcon = '🔥';
+        } else if (status === '其他(詳說明)') {
+            statusBadgeClass = 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200';
+            statusIcon = '💬';
         }
 
+        let statusDisplayText = `${statusIcon} ${status}`;
+        if (statusObj.inherited && statusObj.inheritedDate) {
+            statusDisplayText += ` (沿用 ${statusObj.inheritedDate.slice(5)})`;
+        } else if (statusObj.handler) {
+            statusDisplayText += ` (${statusObj.handler})`;
+        }
+
+        const tooltipText = statusObj.inherited 
+            ? `[沿用自 ${statusObj.inheritedDate} 紀錄] ${statusObj.note ? '說明: ' + statusObj.note : '點擊更新今日處理進度'}`
+            : (statusObj.note ? '說明: ' + statusObj.note : '點擊更新處理進度');
+
+        const statusBtn = `
+            <div class="relative group inline-block">
+                <button onclick="openProcessStatusModal('${itemKey}', '${row.warehouse}', '${row.materialId}', '${normDate}')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition duration-150 inline-flex items-center gap-1 cursor-pointer ${statusBadgeClass}">
+                    <span class="max-w-[150px] truncate">${statusDisplayText}</span>
+                </button>
+                <div class="absolute top-full right-0 mt-1.5 hidden group-hover:block z-50 w-max max-w-xs px-3 py-1.5 text-xs font-normal text-white bg-gray-900/95 rounded-xl shadow-xl backdrop-blur-sm pointer-events-none transition-all">
+                    ${tooltipText}
+                </div>
+            </div>
+        `;
+
+        const countClass = row.count > 10 ? 'text-red-600 font-extrabold text-sm' : 'text-indigo-600 font-bold';
+
+        return `
+        <tr class="hover:bg-blue-50 border-b border-gray-100 transition whitespace-nowrap">
+            <td class="px-4 py-3 text-center">${statusBtn}</td>
+            <td class="px-4 py-3">${row.date}</td>
+            <td class="px-4 py-3 font-medium text-blue-800">${row.warehouse}</td>
+            <td class="px-4 py-3 font-mono font-semibold">${row.materialId}</td>
+            <td class="px-4 py-3 text-gray-600 truncate max-w-[200px]">${spec}</td>
+            <td class="px-4 py-3 text-gray-500">${row.unit || '-'}</td>
+            <td class="px-4 py-3 text-center ${countClass}">${row.count}</td>
+            <td class="px-4 py-3 text-center">
+                ${Array.from(row.sources).map(s => `<span class="${s==='D'?'bg-red-500':'bg-blue-500'} text-white px-1.5 py-0.5 rounded text-[10px] mr-1">25${s}</span>`).join('')}
+            </td>
+            <td class="px-4 py-3 text-center font-bold">${remark}</td>
+            <td class="px-4 py-3 font-semibold text-indigo-700">${orderDept}</td>
+            <td class="px-4 py-3">${reqNoDisplay}</td>
+            <td class="px-4 py-3">${vendorDisplay}</td>
+            <td class="px-4 py-3 text-indigo-700">${onWay.phone}</td>
+        </tr>
+        `;
+    });
+
+    if (rowsHTML.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="13" class="px-6 py-10 text-center text-gray-400 italic">無符合處理進度「${selectedProgress}」之缺貨資料。</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = rowsHTML.join('');
+}
+
+        <!-- ========================================================= -->
+        <!-- 渲染第2頁（Tab 2）表格-->
+        <!-- ========================================================= -->
+            
+// 記錄 Tab 2 目前的排序狀態（請確保宣告在檔案全域）
+let currentSortTab2Column = null;
+let currentSortTab2Direction = 'asc'; // 'asc' 升冪, 'desc' 降冪
+
+function sortTab2(column) {
+    if (currentSortTab2Column === column) {
+        currentSortTab2Direction = currentSortTab2Direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortTab2Column = column;
+        currentSortTab2Direction = 'asc';
+    }
+    renderTab2();
+}
+
+function updateSortIconsTab2() {
+    const headers = [
+        'warehouse', 'materialId', 'unit', 'spec', 'delivery', 
+        'monthlyQty', 'stockQty', 'endDate', 'reqNo', 'reqDate', 
+        'needDate', 'onWayQty', 'leadTime', 'vendorId', 'vendorShort'
+    ];
+    headers.forEach(col => {
+        const span = document.getElementById(`sort-tab2-${col}`);
+        if (span) span.textContent = '';
+    });
+    if (currentSortTab2Column) {
+        const activeSpan = document.getElementById(`sort-tab2-${currentSortTab2Column}`);
+        if (activeSpan) {
+            activeSpan.textContent = currentSortTab2Direction === 'asc' ? ' ▲' : ' ▼';
+        }
+    }
+}
+
+function renderTab2() {
+    const tbody = document.getElementById('resultBodyTab2');
+    if (!tbody) return;
+    if (tab2Data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 italic text-sm">無 G5404 安全庫存資料。</td></tr>`;
+        return;
+    }
+
+    const selectedWh = document.getElementById('warehouseFilterSelect')?.value || 'ALL';
+    const selectedEndDateRange = document.getElementById('endDateFilterSelect')?.value || 'ALL';
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const filteredData = tab2Data.filter(item => {
+        const matchWh = (selectedWh === 'ALL' || item.warehouse === selectedWh);
+        
+        let matchEndDate = true;
+        if (selectedEndDateRange !== 'ALL') {
+            const endDateParts = item.endDate.split('/');
+            const endDateObj = new Date(endDateParts[0], parseInt(endDateParts[1]) - 1, endDateParts[2]);
+            const diffDays = Math.ceil((endDateObj - today) / (1000 * 60 * 60 * 24));
+            
+            if (selectedEndDateRange === '7D') matchEndDate = diffDays <= 7;
+            else if (selectedEndDateRange === '14D') matchEndDate = diffDays <= 14;
+            else if (selectedEndDateRange === '30D') matchEndDate = diffDays <= 30;
+        }
+        
+        return matchWh && matchEndDate;
+    });
+
+    if (filteredData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="15" class="px-6 py-10 text-center text-gray-400 italic text-sm">無符合篩選條件之安全庫存資料。</td></tr>`;
+        return;
+    }
+
+    // ==================== 排序邏輯處理 ====================
+    if (currentSortTab2Column) {
+        filteredData.sort((a, b) => {
+            let valA, valB;
+
+            if (['monthlyQty', 'stockQty', 'onWayQty', 'leadTime'].includes(currentSortTab2Column)) {
+                valA = Number(a[currentSortTab2Column]) || 0;
+                valB = Number(b[currentSortTab2Column]) || 0;
+            } else if (currentSortTab2Column === 'vendorShort') {
+                valA = findVendorShortById(a.vendorId) || '';
+                valB = findVendorShortById(b.vendorId) || '';
+            } else {
+                valA = a[currentSortTab2Column] || '';
+                valB = b[currentSortTab2Column] || '';
+            }
+
+            if (typeof valA === 'number' && typeof valB === 'number') {
+                return currentSortTab2Direction === 'asc' ? valA - valB : valB - valA;
+            } else {
+                valA = String(valA).toLowerCase();
+                valB = String(valB).toLowerCase();
+                let comp = valA.localeCompare(valB, 'zh-Hant');
+                return currentSortTab2Direction === 'asc' ? comp : -comp;
+            }
+        });
+    }
+
+    // 更新表頭排序箭頭
+    updateSortIconsTab2();
+    // ======================================================
+
+    tbody.innerHTML = filteredData.map(row => {
+        const vendorShort = findVendorShortById(row.vendorId);
+        const endDateParts = row.endDate.split('/');
+        const endDateObj = new Date(endDateParts[0], parseInt(endDateParts[1]) - 1, endDateParts[2]);
+        const diffTime = endDateObj - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        let dateDisplay = `<span class="text-blue-600 font-semibold">${row.endDate}</span>`;
+        if (diffDays <= 14) {
+            dateDisplay = `<span class="bg-red-600 text-white font-bold px-2 py-0.5 rounded shadow-sm">${row.endDate} (${diffDays}天)</span>`;
+        }
+
+        return `
+        <tr class="hover:bg-indigo-50 border-b border-gray-100 transition whitespace-nowrap">
+            <td class="px-3 py-2 font-bold text-blue-800">${row.warehouse}</td>
+            <td class="px-3 py-2 font-mono font-semibold">${row.materialId}</td>
+            <td class="px-3 py-2">${row.unit}</td>
+            <td class="px-3 py-2 truncate max-w-[150px]">${row.spec}</td>
+            <td class="px-3 py-2 text-center">${row.delivery}</td>
+            <td class="px-3 py-2 text-right">${row.monthlyQty}</td>
+            <td class="px-3 py-2 text-right text-red-600 font-bold">${row.stockQty}</td>
+            <td class="px-3 py-2 text-center">${dateDisplay}</td>
+            <td class="px-3 py-2 font-mono">${row.reqNo}</td>
+            <td class="px-3 py-2 text-center">${row.reqDate}</td>
+            <td class="px-3 py-2 text-center">${row.needDate}</td>
+            <td class="px-3 py-2 text-right text-green-600 font-semibold">${row.onWayQty}</td>
+            <td class="px-3 py-2 text-center">${row.leadTime}</td>
+            <td class="px-3 py-2 font-mono">${row.vendorId}</td>
+            <td class="px-3 py-2 font-semibold text-indigo-700">${vendorShort}</td>
+        </tr>
+        `;
+    }).join('');
+}
+        <!-- ========================================================= -->
+        <!-- 渲染第3頁（Tab 3）缺貨資料表格-->
+        <!-- ========================================================= -->
         function renderTab3() {
             const tbody = document.getElementById('resultBodyTab3');
             if (!tbody) return;
@@ -1348,7 +2187,7 @@
             pwdInput.type = pwdInput.type === 'password' ? 'text' : 'password';
         }
 
-        function handleLogin(event) {
+        function handleStep1(event) {
             if (event) event.preventDefault();
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
@@ -1362,37 +2201,82 @@
 
             if (username === 'stock' && password === 'stock') {
                 errorBox.classList.add('hidden');
-                document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('mainDashboard').classList.remove('hidden');
-                document.getElementById('currentUserName').textContent = username;
-
-                sessionStorage.setItem('isLoggedIn', 'true');
-                sessionStorage.setItem('loggedInUser', username);
-
-                initDateDisplay();
-                fetchTodayDataFromSupabase();
+                document.getElementById('step1Form').classList.add('hidden');
+                document.getElementById('step2Form').classList.remove('hidden');
+                document.getElementById('loginTitle').textContent = '選擇單位與人員姓名';
+                document.getElementById('loginSubtitle').textContent = '步驟 2/2：請選擇您的所屬單位與姓名(如未找到姓名則需補建檔)';
+                
+                fetchAllowedUsers();
             } else {
                 document.getElementById('loginErrorMsg').textContent = '帳號或密碼錯誤，請再試一次！';
                 errorBox.classList.remove('hidden');
             }
         }
 
+        function goToStep1() {
+            document.getElementById('step2Form').classList.add('hidden');
+            document.getElementById('step1Form').classList.remove('hidden');
+            document.getElementById('loginTitle').textContent = '每日缺貨資料螢幕登入';
+            document.getElementById('loginSubtitle').textContent = '請輸入帳號密碼以存取報表系統';
+            const errorBox = document.getElementById('loginError');
+            if (errorBox) errorBox.classList.add('hidden');
+        }
+
+        function handleStep2(event) {
+            if (event) event.preventDefault();
+            const dept = document.getElementById('userDepartment').value;
+            const name = document.getElementById('userFullName').value.trim();
+            const errorBox = document.getElementById('loginError');
+
+            if (!dept || !name) {
+                document.getElementById('loginErrorMsg').textContent = '請選擇服務單位並輸入您的姓名！';
+                errorBox.classList.remove('hidden');
+                return;
+            }
+
+            errorBox.classList.add('hidden');
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainDashboard').classList.remove('hidden');
+
+            const displayUser = `${dept}-${name}`;
+            document.getElementById('currentUserName').textContent = displayUser;
+
+            sessionStorage.setItem('isLoggedIn', 'true');
+            sessionStorage.setItem('loggedInUser', 'stock');
+            sessionStorage.setItem('userDepartment', dept);
+            sessionStorage.setItem('userFullName', name);
+
+            initDateDisplay();
+            fetchTodayDataFromSupabase();
+        }
+
         function handleLogout() {
             sessionStorage.removeItem('isLoggedIn');
             sessionStorage.removeItem('loggedInUser');
+            sessionStorage.removeItem('userDepartment');
+            sessionStorage.removeItem('userFullName');
+
             document.getElementById('mainDashboard').classList.add('hidden');
             document.getElementById('loginScreen').classList.remove('hidden');
             document.getElementById('loginUsername').value = '';
             document.getElementById('loginPassword').value = '';
+            document.getElementById('userDepartment').value = '';
+            document.getElementById('userFullName').value = '';
+            goToStep1();
         }
 
         window.onload = function() {
             initDateDisplay();
+            fetchAllowedUsers();
+
             if (sessionStorage.getItem('isLoggedIn') === 'true') {
-                const username = sessionStorage.getItem('loggedInUser') || 'stock';
+                const dept = sessionStorage.getItem('userDepartment') || '';
+                const name = sessionStorage.getItem('userFullName') || sessionStorage.getItem('loggedInUser') || 'stock';
+                const displayUser = (dept && name) ? `${dept}-${name}` : name;
+
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('mainDashboard').classList.remove('hidden');
-                document.getElementById('currentUserName').textContent = username;
+                document.getElementById('currentUserName').textContent = displayUser;
                 fetchTodayDataFromSupabase();
             }
         };
