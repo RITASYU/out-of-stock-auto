@@ -520,27 +520,61 @@
                 </div>
                 <div class="table-container max-h-[600px]">
                     <table class="w-full text-left border-collapse sticky-header text-tiny">
-                        <thead>
-                            <tr class="bg-gray-100 text-gray-700 uppercase font-bold whitespace-nowrap">
-                                <th class="px-3 py-3 border-b">請購案號</th>
-                                <th class="px-3 py-3 border-b">批號</th>
-                                <th class="px-3 py-3 border-b">項次</th>
-                                <th class="px-3 py-3 border-b text-indigo-700">訂購別</th>
-                                <th class="px-3 py-3 border-b">材料編號</th>
-                                <th class="px-3 py-3 border-b">單位</th>
-                                <th class="px-3 py-3 border-b">庫別</th>
-                                <th class="px-3 py-3 border-b text-indigo-700">廠商簡稱</th>
-                                <th class="px-3 py-3 border-b">請購日期</th>
-                                <th class="px-3 py-3 border-b">約交日期</th>
-                                <th class="px-3 py-3 text-right border-b">請購數量</th>
-                                <th class="px-3 py-3 text-right border-b">訂購數量</th>
-                                <th class="px-3 py-3 text-right border-b">累交數量</th>
-                                <th class="px-3 py-3 border-b">電話</th>
-                                <th class="px-3 py-3 border-b">傳真</th>
-                                <th class="px-3 py-3 border-b">訂購廠商</th>
-                                <th class="px-3 py-3 border-b">請購部門</th>
-                            </tr>
-                        </thead>
+<thead>
+    <tr class="bg-gray-100 text-gray-700 uppercase font-bold whitespace-nowrap select-none">
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('reqNo')">
+            請購案號 <span id="sort-tab3-reqNo" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('batch')">
+            批號 <span id="sort-tab3-batch" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('item')">
+            項次 <span id="sort-tab3-item" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b text-indigo-700 cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('orderType')">
+            訂購別 <span id="sort-tab3-orderType" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('materialId')">
+            材料編號 <span id="sort-tab3-materialId" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('unit')">
+            單位 <span id="sort-tab3-unit" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('warehouse')">
+            庫別 <span id="sort-tab3-warehouse" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b text-indigo-700 cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('vendorShort')">
+            廠商簡稱 <span id="sort-tab3-vendorShort" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('reqDate')">
+            請購日期 <span id="sort-tab3-reqDate" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('promiseDate')">
+            約交日期 <span id="sort-tab3-promiseDate" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 text-right border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('reqQty')">
+            請購數量 <span id="sort-tab3-reqQty" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 text-right border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('ordQty')">
+            訂購數量 <span id="sort-tab3-ordQty" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 text-right border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('delivQty')">
+            累交數量 <span id="sort-tab3-delivQty" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('phone')">
+            電話 <span id="sort-tab3-phone" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('fax')">
+            傳真 <span id="sort-tab3-fax" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('vendorId')">
+            訂購廠商 <span id="sort-tab3-vendorId" class="text-gray-400 font-normal"></span>
+        </th>
+        <th class="px-3 py-3 border-b cursor-pointer hover:bg-gray-200 transition-colors" onclick="sortTab3('dept')">
+            請購部門 <span id="sort-tab3-dept" class="text-gray-400 font-normal"></span>
+        </th>
+    </tr>
+</thead>
                         <tbody id="resultBodyTab3" class="text-gray-600">
                             <tr><td colspan="17" class="px-6 py-10 text-center text-gray-400 text-sm italic">尚未取得 OnWayPurhGA/MA/KA 檔案。</td></tr>
                         </tbody>
