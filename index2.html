@@ -2067,73 +2067,124 @@ function renderTab2() {
         `;
     }).join('');
 }
-        <!-- ========================================================= -->
-        <!-- 渲染第3頁（Tab 3）缺貨資料表格-->
-        <!-- ========================================================= -->
-        function renderTab3() {
-            const tbody = document.getElementById('resultBodyTab3');
-            if (!tbody) return;
-            if (tab3Data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="17" class="px-6 py-10 text-center text-gray-400 text-sm italic">無 OnWayPurh 在途資料。</td></tr>`;
-                return;
+// =========================================================
+// Tab 3 排序狀態與函式
+// =========================================================
+let tab3SortField = '';
+let tab3SortAsc = true;
+
+function sortTab3(field) {
+    if (tab3SortField === field) {
+        tab3SortAsc = !tab3SortAsc;
+    } else {
+        tab3SortField = field;
+        tab3SortAsc = true;
+    }
+
+    // 更新畫面上的排序圖示 (▲ / ▼)
+    const allSortSpans = document.querySelectorAll('[id^="sort-tab3-"]');
+    allSortSpans.forEach(span => span.textContent = '');
+
+    const currentSpan = document.getElementById(`sort-tab3-${field}`);
+    if (currentSpan) {
+        currentSpan.textContent = tab3SortAsc ? ' ▲' : ' ▼';
+    }
+
+    renderTab3();
+}
+
+// =========================================================
+// 渲染第3頁（Tab 3）在途資料表格
+// =========================================================
+function renderTab3() {
+    const tbody = document.getElementById('resultBodyTab3');
+    if (!tbody) return;
+    if (tab3Data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="17" class="px-6 py-10 text-center text-gray-400 text-sm italic">無 OnWayPurh 在途資料。</td></tr>`;
+        return;
+    }
+
+    const selectedWh = document.getElementById('warehouseFilterSelect')?.value || 'ALL';
+    const selectedBatch = document.getElementById('batchFilterSelect')?.value || 'ALL';
+    const selectedDept = document.getElementById('orderDeptFilterSelect')?.value || 'ALL';
+
+    const filteredData = tab3Data.filter(item => {
+        const matchWh = (selectedWh === 'ALL' || item.warehouse === selectedWh);
+        const matchBatch = (selectedBatch === 'ALL' || item.batch === selectedBatch);
+        const orderDept = findOrderDept(item.warehouse, item.materialId);
+        const matchDept = (selectedDept === 'ALL' || orderDept === selectedDept);
+        return matchWh && matchBatch && matchDept;
+    });
+
+    if (filteredData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="17" class="px-6 py-10 text-center text-gray-400 text-sm italic">無符合篩選條件之在途資料。</td></tr>`;
+        return;
+    }
+
+    // 進行排序處理
+    if (tab3SortField) {
+        filteredData.sort((a, b) => {
+            let valA, valB;
+
+            // 對應 HTML 中點選 'orderType' 時，實際去抓計算後的 orderDept
+            if (tab3SortField === 'orderType') {
+                valA = findOrderDept(a.warehouse, a.materialId);
+                valB = findOrderDept(b.warehouse, b.materialId);
+            } else {
+                valA = a[tab3SortField];
+                valB = b[tab3SortField];
             }
 
-            const selectedWh = document.getElementById('warehouseFilterSelect')?.value || 'ALL';
-            const selectedBatch = document.getElementById('batchFilterSelect')?.value || 'ALL';
-            const selectedDept = document.getElementById('orderDeptFilterSelect')?.value || 'ALL';
+            if (valA === null || valA === undefined) valA = '';
+            if (valB === null || valB === undefined) valB = '';
 
-            const filteredData = tab3Data.filter(item => {
-                const matchWh = (selectedWh === 'ALL' || item.warehouse === selectedWh);
-                const matchBatch = (selectedBatch === 'ALL' || item.batch === selectedBatch);
-                const orderDept = findOrderDept(item.warehouse, item.materialId);
-                const matchDept = (selectedDept === 'ALL' || orderDept === selectedDept);
-                return matchWh && matchBatch && matchDept;
-            });
-
-            if (filteredData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="17" class="px-6 py-10 text-center text-gray-400 text-sm italic">無符合篩選條件之在途資料。</td></tr>`;
-                return;
+            if (typeof valA === 'string' && typeof valB === 'string') {
+                return tab3SortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            } else {
+                return tab3SortAsc ? valA - valB : valB - valA;
             }
+        });
+    }
 
-            const queryIsoDate = formatDateToISO(selectedQueryDate);
+    const queryIsoDate = formatDateToISO(selectedQueryDate);
 
-            tbody.innerHTML = filteredData.map(row => {
-                const promiseIso = normalizeDateToISO(row.promiseDate);
-                const isPastPromiseDate = promiseIso && promiseIso < queryIsoDate;
-                const promiseDateHtml = isPastPromiseDate
-                    ? `<span class="bg-red-600 text-white font-bold px-2 py-0.5 rounded shadow-sm inline-block">${row.promiseDate}</span>`
-                    : `<span class="text-blue-600 font-semibold">${row.promiseDate}</span>`;
+    tbody.innerHTML = filteredData.map(row => {
+        const promiseIso = normalizeDateToISO(row.promiseDate);
+        const isPastPromiseDate = promiseIso && promiseIso < queryIsoDate;
+        const promiseDateHtml = isPastPromiseDate
+            ? `<span class="bg-red-600 text-white font-bold px-2 py-0.5 rounded shadow-sm inline-block">${row.promiseDate}</span>`
+            : `<span class="text-blue-600 font-semibold">${row.promiseDate}</span>`;
 
-                const isXXBatch = String(row.batch || '').trim().toUpperCase() === 'XX';
-                const batchHtml = isXXBatch
-                    ? `<span class="bg-red-600 text-white font-bold px-2 py-0.5 rounded shadow-sm inline-block">${row.batch}</span>`
-                    : row.batch;
+        const isXXBatch = String(row.batch || '').trim().toUpperCase() === 'XX';
+        const batchHtml = isXXBatch
+            ? `<span class="bg-red-600 text-white font-bold px-2 py-0.5 rounded shadow-sm inline-block">${row.batch}</span>`
+            : row.batch;
 
-                const orderDept = findOrderDept(row.warehouse, row.materialId);
+        const orderDept = findOrderDept(row.warehouse, row.materialId);
 
-                return `
-                <tr class="hover:bg-green-50 border-b border-gray-100 transition whitespace-nowrap">
-                    <td class="px-3 py-2 font-bold font-mono">${row.reqNo}</td>
-                    <td class="px-3 py-2 text-center">${batchHtml}</td>
-                    <td class="px-3 py-2">${row.item}</td>
-                    <td class="px-3 py-2 font-semibold text-indigo-700">${orderDept}</td>
-                    <td class="px-3 py-2 font-mono font-semibold">${row.materialId}</td>
-                    <td class="px-3 py-2">${row.unit}</td>
-                    <td class="px-3 py-2 font-semibold text-blue-700">${row.warehouse}</td>
-                    <td class="px-3 py-2 font-semibold text-indigo-700">${row.vendorShort || '-'}</td>
-                    <td class="px-3 py-2 text-center">${row.reqDate}</td>
-                    <td class="px-3 py-2 text-center">${promiseDateHtml}</td>
-                    <td class="px-3 py-2 text-right font-medium">${row.reqQty}</td>
-                    <td class="px-3 py-2 text-right font-bold text-green-700">${row.ordQty}</td>
-                    <td class="px-3 py-2 text-right">${row.delivQty}</td>
-                    <td class="px-3 py-2">${row.phone}</td>
-                    <td class="px-3 py-2">${row.fax}</td>
-                    <td class="px-3 py-2 truncate max-w-[120px]" title="${row.vendorId}">${row.vendorId}</td>
-                    <td class="px-3 py-2">${row.dept}</td>
-                </tr>
-                `;
-            }).join('');
-        }
+        return `
+        <tr class="hover:bg-green-50 border-b border-gray-100 transition whitespace-nowrap">
+            <td class="px-3 py-2 font-bold font-mono">${row.reqNo}</td>
+            <td class="px-3 py-2 text-center">${batchHtml}</td>
+            <td class="px-3 py-2">${row.item}</td>
+            <td class="px-3 py-2 font-semibold text-indigo-700">${orderDept}</td>
+            <td class="px-3 py-2 font-mono font-semibold">${row.materialId}</td>
+            <td class="px-3 py-2">${row.unit}</td>
+            <td class="px-3 py-2 font-semibold text-blue-700">${row.warehouse}</td>
+            <td class="px-3 py-2 font-semibold text-indigo-700">${row.vendorShort || '-'}</td>
+            <td class="px-3 py-2 text-center">${row.reqDate}</td>
+            <td class="px-3 py-2 text-center">${promiseDateHtml}</td>
+            <td class="px-3 py-2 text-right font-medium">${row.reqQty}</td>
+            <td class="px-3 py-2 text-right font-bold text-green-700">${row.ordQty}</td>
+            <td class="px-3 py-2 text-right">${row.delivQty}</td>
+            <td class="px-3 py-2">${row.phone}</td>
+            <td class="px-3 py-2">${row.fax}</td>
+            <td class="px-3 py-2 truncate max-w-[120px]" title="${row.vendorId}">${row.vendorId}</td>
+            <td class="px-3 py-2">${row.dept}</td>
+        </tr>
+        `;
+    }).join('');
+}
 
         function clearData(tab) {
             if (tab === 'tab1') {
