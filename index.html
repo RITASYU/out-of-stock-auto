@@ -30,13 +30,6 @@
         .text-tiny {
             font-size: 0.7rem;
         }
-        @keyframes pulse-subtle {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-        .animate-pulse-subtle {
-            animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen p-4 md:p-8">
@@ -117,12 +110,13 @@
 
     <!-- 主儀表板容器 -->
     <div id="mainDashboard" class="max-w-[1600px] mx-auto hidden">
-        <div class="relative mb-6 flex flex-col md:flex-row items-center justify-between pb-2 border-b border-gray-200">
+        <!-- 頂端選單區塊套用 bg-blue-100 並設定 sticky 固定於畫面上方 -->
+        <div class="sticky top-0 z-30 mb-6 p-4 bg-blue-100/95 backdrop-blur-md rounded-xl shadow-sm flex flex-col md:flex-row items-center justify-between pb-2 border-b border-blue-200">
             <div class="flex items-center gap-3 mb-2 md:mb-0">
                 <span class="text-3xl">📦</span>
                 <div>
                     <h1 class="text-2xl md:text-3xl font-bold text-gray-800">每日缺貨資料彙總</h1>
-                    <p class="text-xs text-gray-500">自動擷取當日缺貨與在途報表</p>
+                    <p class="text-xs text-gray-600">自動擷取當日缺貨與在途報表</p>
                 </div>
             </div>
 
@@ -139,11 +133,11 @@
                     <span id="currentDateText">--</span>
                 </span>
 
-                <div class="flex items-center gap-2 pl-2 border-l border-gray-200">
+                <div class="flex items-center gap-2 pl-2 border-l border-blue-200">
                     <span class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-lg text-xs font-bold">
                         👤 <span id="currentUserName">stock</span>
                     </span>
-                    <button onclick="handleLogout()" title="登出系統" class="px-2.5 py-1.5 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-200 hover:border-red-200 rounded-lg text-xs font-semibold transition flex items-center gap-1">
+                    <button onclick="handleLogout()" title="登出系統" class="px-2.5 py-1.5 bg-white hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-200 hover:border-red-200 rounded-lg text-xs font-semibold transition flex items-center gap-1">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                         登出
                     </button>
@@ -152,18 +146,25 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-3 w-full md:w-auto">
-                <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                    </svg>
-                </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h3 class="font-bold text-gray-800 text-sm">資料自動擷取狀態</h3>
-                        <span id="targetDateBadge" class="bg-indigo-100 text-indigo-800 text-[11px] px-2 py-0.5 rounded font-mono font-medium">當前查詢日期: --</span>
+            <div class="flex items-center justify-between w-full md:w-auto gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
                     </div>
-                    <p id="syncDetailText" class="text-xs text-gray-500 mt-0.5">自動連接 (daily-files) 讀取當天缺貨資料檔。</p>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-bold text-gray-800 text-sm">資料自動擷取狀態</h3>
+                            <span id="targetDateBadge" class="bg-indigo-100 text-indigo-800 text-[11px] px-2 py-0.5 rounded font-mono font-medium">當前查詢日期: --</span>
+                        </div>
+                        <div class="flex items-center gap-3 mt-0.5 flex-wrap">
+                            <p id="syncDetailText" class="text-xs text-gray-500">自動連接 (daily-files) 讀取當天缺貨資料檔。</p>
+                            <button id="toggleFilesBtn" onclick="toggleFileStatusCollapse()" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded transition hidden">
+                                [展開檔案]
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -192,11 +193,9 @@
             </div>
         </div>
 
-        <div id="fileStatusContainer" class="mb-4 flex flex-wrap items-center gap-2 min-h-[28px]">
-            <span class="text-xs font-semibold text-gray-400">當前資料庫載入檔案：</span>
-            <div id="fileStatus" class="flex flex-wrap gap-2">
-                <span class="text-xs text-gray-400 italic">尚未載入檔案</span>
-            </div>
+        <!-- 已載入檔案清單區塊 (預設收合隱藏) -->
+        <div id="fileStatusContainer" class="mb-4 flex flex-wrap items-center gap-2 min-h-[10px] transition-all">
+            <div id="fileStatus" class="flex flex-wrap gap-2 hidden"></div>
         </div>
 
         <div id="errorMessage" class="mb-6 text-sm text-red-600 hidden bg-red-50 p-3 rounded-lg border border-red-200 flex justify-between items-center">
@@ -204,7 +203,8 @@
             <button onclick="document.getElementById('errorMessage').classList.add('hidden')" class="text-red-500 font-bold ml-2">&times;</button>
         </div>
 
-        <div class="flex border-b border-gray-200 mb-6 bg-white rounded-t-lg px-4 overflow-x-auto">
+        <!-- 導覽分頁列 -->
+        <div class="flex border-b border-gray-200 mb-6 bg-white rounded-t-lg px-4 overflow-x-auto shadow-sm">
             <button onclick="switchTab('tab1')" id="btn-tab1" class="tab-btn active px-6 py-3 font-bold text-sm transition-all duration-200 whitespace-nowrap">
                 缺貨頻次分析 (25D/E)
             </button>
@@ -213,6 +213,12 @@
             </button>
             <button onclick="switchTab('tab3')" id="btn-tab3" class="tab-btn px-6 py-3 font-bold text-sm text-gray-500 transition-all duration-200 whitespace-nowrap">
                 在途資料
+            </button>
+            <button onclick="switchTab('tab4')" id="btn-tab4" class="tab-btn px-6 py-3 font-bold text-sm text-gray-500 transition-all duration-200 whitespace-nowrap">
+                統計
+            </button>
+            <button onclick="switchTab('tab5')" id="btn-tab5" class="tab-btn px-6 py-3 font-bold text-sm text-gray-500 transition-all duration-200 whitespace-nowrap">
+                缺貨率與周轉率
             </button>
         </div>
 
@@ -376,6 +382,62 @@
                 </div>
             </div>
         </div>
+
+        <!-- Tab 4: 統計 -->
+        <div id="tab4" class="tab-content">
+            <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 p-6 space-y-6">
+                <div class="flex justify-between items-center border-b pb-4">
+                    <h2 class="text-lg font-bold text-gray-800">缺貨與處理進度統計總覽</h2>
+                    <button onclick="renderTab4Stats()" class="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 font-medium shadow-sm">重新整理統計</button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+                        <div class="text-indigo-600 text-xs font-bold uppercase">總缺貨項目筆數</div>
+                        <div id="statTotalShort" class="text-2xl font-extrabold text-indigo-900 mt-1">0</div>
+                    </div>
+                    <div class="bg-red-50 border border-red-100 rounded-xl p-4">
+                        <div class="text-red-600 text-xs font-bold uppercase">未處理筆數</div>
+                        <div id="statUnprocessed" class="text-2xl font-extrabold text-red-900 mt-1">0</div>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                        <div class="text-blue-600 text-xs font-bold uppercase">處理中/已洽供應商</div>
+                        <div id="statProcessing" class="text-2xl font-extrabold text-blue-900 mt-1">0</div>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
+                        <div class="text-emerald-600 text-xs font-bold uppercase">已到貨入庫</div>
+                        <div id="statCompleted" class="text-2xl font-extrabold text-emerald-900 mt-1">0</div>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <h3 class="font-bold text-gray-700 text-sm">各供應庫缺貨分佈統計</h3>
+                    <div class="table-container border rounded-xl overflow-hidden">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-gray-100 text-gray-700 uppercase font-bold">
+                                    <th class="px-4 py-2.5 border-b">供應庫</th>
+                                    <th class="px-4 py-2.5 border-b text-right">缺貨項目總數</th>
+                                    <th class="px-4 py-2.5 border-b text-right">未處理數</th>
+                                    <th class="px-4 py-2.5 border-b text-right">已處理/入庫數</th>
+                                    <th class="px-4 py-2.5 border-b text-right">處理完成率</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statWarehouseBody" class="text-gray-600">
+                                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400 italic">尚無統計資料</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: 缺貨率與周轉率 -->
+        <div id="tab5" class="tab-content">
+            <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 p-6 min-h-[300px] flex items-center justify-center text-gray-400 italic text-sm">
+                此功能建置中 (Coming Soon)...
+            </div>
+        </div>
     </div>
 
     <!-- 處理進度 Modal -->
@@ -441,16 +503,19 @@
     <!-- 無資料 Modal -->
     <div id="noDataModal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
         <div class="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md overflow-hidden transform transition-all p-6 text-center">
-            <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4 text-2xl">⚠️</div>
+            <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4 text-2xl">
+                ⚠️
+            </div>
             <h3 class="text-lg font-bold text-gray-800 mb-2">系統提示</h3>
             <p class="text-sm text-gray-600 mb-6 font-medium">今日資料尚未上傳，請聯絡存管員處理</p>
             <div class="flex items-center justify-center gap-3">
-                <button onclick="closeNoDataModal()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition">確定</button>
+                <button onclick="closeNoDataModal()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition">
+                    確定
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- JavaScript 邏輯 -->
     <script>
         const SUPABASE_URL = "https://oxuvvioaenzifebmuioi.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94dXZ2aW9hZW56aWZlYm11aW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MzE1NjYsImV4cCI6MjEwMDIwNzU2Nn0.SNk6UuvAMbxo0RvzxCfOLAfnn32jyZt0hFkoP0Lk7Vw";
@@ -463,6 +528,22 @@
         let supabaseClient = null;
         let baseCsvMap = new Map();
         let allowedUsersList = [];
+        let isFileStatusCollapsed = true;
+
+        function toggleFileStatusCollapse() {
+            isFileStatusCollapsed = !isFileStatusCollapsed;
+            const content = document.getElementById('fileStatus');
+            const btn = document.getElementById('toggleFilesBtn');
+            if (content && btn) {
+                if (isFileStatusCollapsed) {
+                    content.classList.add('hidden');
+                    btn.textContent = '[展開檔案]';
+                } else {
+                    content.classList.remove('hidden');
+                    btn.textContent = '[收合檔案]';
+                }
+            }
+        }
 
         async function fetchAllowedUsers() {
             if (!initSupabaseClient()) return;
@@ -498,7 +579,9 @@
                 return;
             }
             let html = '<option value="">-- 請選擇單位 --</option>';
-            depts.sort().forEach(dept => { html += `<option value="${dept}">${dept}</option>`; });
+            depts.sort().forEach(dept => {
+                html += `<option value="${dept}">${dept}</option>`;
+            });
             deptSelect.innerHTML = html;
             onDepartmentChange();
         }
@@ -518,7 +601,7 @@
             }
             let html = '<option value="">-- 請選擇姓名 --</option>';
             filteredUsers.forEach(u => {
-                html += `<option value="${u.name}" data-warehouse="${u.defaultWarehouse || ''}">${u.name}</option>`;
+                html += `<option value="${u.name}">${u.name}</option>`;
             });
             nameSelect.innerHTML = html;
         }
@@ -574,7 +657,6 @@
             if (lines.length < 2) return;
             const headers = splitCsvLine(lines[0]);
             let whIdx = -1, matIdx = -1, deptIdx = -1;
-
             headers.forEach((h, idx) => {
                 const hUpper = h.toUpperCase();
                 if (hUpper.includes("庫") || hUpper.includes("WAREHOUSE") || hUpper.includes("WH")) {
@@ -587,11 +669,9 @@
                     if (deptIdx === -1) deptIdx = idx;
                 }
             });
-
             if (whIdx === -1) whIdx = 0;
             if (matIdx === -1) matIdx = 1;
             if (deptIdx === -1 || deptIdx < 12) deptIdx = 12;
-
             for (let i = 1; i < lines.length; i++) {
                 const cols = splitCsvLine(lines[i]);
                 if (cols.length > Math.max(whIdx, matIdx, deptIdx)) {
@@ -785,8 +865,12 @@
                     }
 
                     if (dbErr) {
-                        console.error('Supabase 儲存失敗:', dbErr);
-                        showError(`儲存失敗: ${dbErr.message || '資料庫錯誤'}`);
+                        console.error('Supabase 儲存至 out_of_stock_items 失敗:', dbErr);
+                        if (dbErr.code === '42501') {
+                            showError('⚠️ Supabase 寫入權限不足 (RLS 42501)');
+                        } else {
+                            showError(`儲存失敗: ${dbErr.message || '資料庫錯誤'}`);
+                        }
                     }
                 } catch (err) {
                     console.error('連線 Supabase 儲存失敗:', err);
@@ -855,6 +939,10 @@
             const activeBtn = document.getElementById('btn-' + tabId);
             activeBtn.classList.add('active');
             activeBtn.classList.remove('text-gray-500');
+
+            if (tabId === 'tab4') {
+                renderTab4Stats();
+            }
         }
 
         function updateStatusBadge(type, message) {
@@ -928,7 +1016,7 @@
             tab3Data = [];
 
             try {
-                const folderPaths = [`${ymd}`, `${iso}`, ''];
+                const folderPaths = [ymd, iso, ''];
                 let fileList = [];
 
                 for (const path of folderPaths) {
@@ -960,6 +1048,28 @@
                         });
                         updateStatusBadge('success', '已同步');
                         if (detailText) detailText.textContent = `成功從 Supabase 資料庫讀取 ${dbData.length} 筆當日報表紀錄。`;
+                        
+                        if (supabaseClient) {
+                            try {
+                                const { data: statusRecords, error: statusErr } = await supabaseClient
+                                    .from('out_of_stock_items')
+                                    .select('*');
+                                
+                                if (!statusErr && statusRecords) {
+                                    statusHistoryList = statusRecords.map(rec => ({
+                                        reportDate: normalizeDateToISO(rec.report_date),
+                                        warehouse: rec.warehouse,
+                                        materialId: rec.material_id,
+                                        status: rec.status,
+                                        note: rec.notes || '',
+                                        handler: rec.updated_by || '',
+                                        updatedAt: rec.updated_at || rec.created_at || ''
+                                    }));
+                                }
+                            } catch (e) {
+                                console.warn('無法獲取 out_of_stock_items 歷史進度:', e);
+                            }
+                        }
                         renderAllTabs();
                         return;
                     }
@@ -984,6 +1094,7 @@
                 if (loadedCount > 0) {
                     updateStatusBadge('success', '已同步');
                     if (detailText) detailText.textContent = `成功擷取並解析 ${loadedCount} 個當天資料檔！`;
+                    document.getElementById('toggleFilesBtn').classList.remove('hidden');
                 } else {
                     updateStatusBadge('warning', '下載失敗');
                     if (detailText) detailText.textContent = `發現檔案但無法讀取，請確認 Storage 存取權限。`;
@@ -1164,6 +1275,7 @@
             addFileBadge('SHORT25E_DEMO.txt', '25E');
             addFileBadge('MAG5404_DEMO.txt', 'G5404');
             addFileBadge('ONWAYPURHMA_DEMO.txt', 'OW-MA');
+            document.getElementById('toggleFilesBtn').classList.remove('hidden');
 
             updateStatusBadge('success', '範例資料已載入');
             const syncDetail = document.getElementById('syncDetailText');
@@ -1203,17 +1315,9 @@
             const currentVal = select.value;
             const warehouses = new Set(['MA', 'GA', 'KA']);
 
-            const defaultWarehouseStr = sessionStorage.getItem('defaultWarehouse') || '';
-            if (defaultWarehouseStr) {
-                defaultWarehouseStr.split(',').forEach(wh => {
-                    const cleanWh = wh.trim().toUpperCase();
-                    if (cleanWh) warehouses.add(cleanWh);
-                });
-            }
-
-            tab1Data.forEach(item => item.warehouse && warehouses.add(item.warehouse.toUpperCase()));
-            tab2Data.forEach(item => item.warehouse && warehouses.add(item.warehouse.toUpperCase()));
-            tab3Data.forEach(item => item.warehouse && warehouses.add(item.warehouse.toUpperCase()));
+            tab1Data.forEach(item => item.warehouse && warehouses.add(item.warehouse));
+            tab2Data.forEach(item => item.warehouse && warehouses.add(item.warehouse));
+            tab3Data.forEach(item => item.warehouse && warehouses.add(item.warehouse));
 
             let optionsHtml = '<option value="ALL">全部庫別</option>';
             Array.from(warehouses).sort().forEach(wh => {
@@ -1274,6 +1378,79 @@
             renderTab1();
             renderTab2();
             renderTab3();
+            const tab4 = document.getElementById('tab4');
+            if (tab4 && tab4.classList.contains('active')) {
+                renderTab4Stats();
+            }
+        }
+
+        function renderTab4Stats() {
+            const selectedWh = document.getElementById('warehouseFilterSelect')?.value || 'ALL';
+            const filteredData = selectedWh === 'ALL' ? tab1Data : tab1Data.filter(item => item.warehouse === selectedWh);
+
+            const summaryMap = new Map();
+            filteredData.forEach(item => {
+                const key = `${item.date}|${item.warehouse}|${item.materialId}`;
+                if (!summaryMap.has(key)) {
+                    summaryMap.set(key, { ...item });
+                }
+            });
+
+            const totalShort = summaryMap.size;
+            let unprocessedCount = 0;
+            let processingCount = 0;
+            let completedCount = 0;
+
+            const warehouseStats = {};
+
+            summaryMap.forEach((row) => {
+                const normDate = normalizeDateToISO(row.date);
+                const statusObj = getStatusForMaterial(row.warehouse, row.materialId, normDate);
+                const status = statusObj.status || '未處理';
+
+                if (!warehouseStats[row.warehouse]) {
+                    warehouseStats[row.warehouse] = { total: 0, unprocessed: 0, completed: 0 };
+                }
+                warehouseStats[row.warehouse].total++;
+
+                if (status === '未處理') {
+                    unprocessedCount++;
+                    warehouseStats[row.warehouse].unprocessed++;
+                } else if (status === '已到貨入庫') {
+                    completedCount++;
+                    warehouseStats[row.warehouse].completed++;
+                } else {
+                    processingCount++;
+                }
+            });
+
+            document.getElementById('statTotalShort').textContent = totalShort;
+            document.getElementById('statUnprocessed').textContent = unprocessedCount;
+            document.getElementById('statProcessing').textContent = processingCount;
+            document.getElementById('statCompleted').textContent = completedCount;
+
+            const whBody = document.getElementById('statWarehouseBody');
+            if (!whBody) return;
+
+            const whKeys = Object.keys(warehouseStats);
+            if (whKeys.length === 0) {
+                whBody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400 italic">尚無統計資料</td></tr>`;
+                return;
+            }
+
+            whBody.innerHTML = whKeys.sort().map(wh => {
+                const stats = warehouseStats[wh];
+                const rate = stats.total > 0 ? ((stats.completed / stats.total) * 100).toFixed(1) + '%' : '0%';
+                return `
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="px-4 py-3 font-bold text-blue-800">${wh} 庫</td>
+                    <td class="px-4 py-3 text-right font-semibold">${stats.total}</td>
+                    <td class="px-4 py-3 text-right text-red-600 font-bold">${stats.unprocessed}</td>
+                    <td class="px-4 py-3 text-right text-emerald-600 font-bold">${stats.completed}</td>
+                    <td class="px-4 py-3 text-right font-mono font-bold text-indigo-600">${rate}</td>
+                </tr>
+                `;
+            }).join('');
         }
 
         let currentSortColumn = null;
@@ -1456,6 +1633,7 @@
                 }
                 
                 const onWay = findOnWayInfo(row.materialId, row.warehouse);
+
                 const hasReqNo = onWay.reqNo && onWay.reqNo !== '-' && onWay.reqNo.trim() !== '';
                 const reqNoDisplay = hasReqNo 
                     ? `<span class="font-mono text-indigo-700">${onWay.reqNo}</span>`
@@ -1576,7 +1754,11 @@
         }
 
         function updateSortIconsTab2() {
-            const headers = ['warehouse', 'materialId', 'unit', 'spec', 'delivery', 'monthlyQty', 'stockQty', 'endDate', 'reqNo', 'reqDate', 'needDate', 'onWayQty', 'leadTime', 'vendorId', 'vendorShort'];
+            const headers = [
+                'warehouse', 'materialId', 'unit', 'spec', 'delivery', 
+                'monthlyQty', 'stockQty', 'endDate', 'reqNo', 'reqDate', 
+                'needDate', 'onWayQty', 'leadTime', 'vendorId', 'vendorShort'
+            ];
             headers.forEach(col => {
                 const span = document.getElementById(`sort-tab2-${col}`);
                 if (span) span.textContent = '';
@@ -1599,20 +1781,24 @@
 
             const selectedWh = document.getElementById('warehouseFilterSelect')?.value || 'ALL';
             const selectedEndDateRange = document.getElementById('endDateFilterSelect')?.value || 'ALL';
+
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
             const filteredData = tab2Data.filter(item => {
                 const matchWh = (selectedWh === 'ALL' || item.warehouse === selectedWh);
+                
                 let matchEndDate = true;
                 if (selectedEndDateRange !== 'ALL') {
                     const endDateParts = item.endDate.split('/');
                     const endDateObj = new Date(endDateParts[0], parseInt(endDateParts[1]) - 1, endDateParts[2]);
                     const diffDays = Math.ceil((endDateObj - today) / (1000 * 60 * 60 * 24));
+                    
                     if (selectedEndDateRange === '7D') matchEndDate = diffDays <= 7;
                     else if (selectedEndDateRange === '14D') matchEndDate = diffDays <= 14;
                     else if (selectedEndDateRange === '30D') matchEndDate = diffDays <= 30;
                 }
+                
                 return matchWh && matchEndDate;
             });
 
@@ -1624,6 +1810,7 @@
             if (currentSortTab2Column) {
                 filteredData.sort((a, b) => {
                     let valA, valB;
+
                     if (['monthlyQty', 'stockQty', 'onWayQty', 'leadTime'].includes(currentSortTab2Column)) {
                         valA = Number(a[currentSortTab2Column]) || 0;
                         valB = Number(b[currentSortTab2Column]) || 0;
@@ -1700,6 +1887,7 @@
             if (currentSpan) {
                 currentSpan.textContent = tab3SortAsc ? ' ▲' : ' ▼';
             }
+
             renderTab3();
         }
 
@@ -1731,6 +1919,7 @@
             if (tab3SortField) {
                 filteredData.sort((a, b) => {
                     let valA, valB;
+
                     if (tab3SortField === 'orderType') {
                         valA = findOrderDept(a.warehouse, a.materialId);
                         valB = findOrderDept(b.warehouse, b.materialId);
@@ -1860,7 +2049,8 @@
                 document.getElementById('step1Form').classList.add('hidden');
                 document.getElementById('step2Form').classList.remove('hidden');
                 document.getElementById('loginTitle').textContent = '選擇單位與人員姓名';
-                document.getElementById('loginSubtitle').textContent = '步驟 2/2：請選擇您的所屬單位與姓名';
+                document.getElementById('loginSubtitle').textContent = '步驟 2/2：請選擇您的所屬單位與姓名(如未找到姓名則需補建檔)';
+                
                 fetchAllowedUsers();
             } else {
                 document.getElementById('loginErrorMsg').textContent = '帳號或密碼錯誤，請再試一次！';
@@ -1880,8 +2070,7 @@
         function handleStep2(event) {
             if (event) event.preventDefault();
             const dept = document.getElementById('userDepartment').value;
-            const nameSelect = document.getElementById('userFullName');
-            const name = nameSelect.value.trim();
+            const name = document.getElementById('userFullName').value.trim();
             const errorBox = document.getElementById('loginError');
 
             if (!dept || !name) {
@@ -1889,10 +2078,6 @@
                 errorBox.classList.remove('hidden');
                 return;
             }
-
-            const selectedOption = nameSelect.options[nameSelect.selectedIndex];
-            let defaultWarehouse = selectedOption ? selectedOption.getAttribute('data-warehouse') : '';
-            defaultWarehouse = defaultWarehouse ? defaultWarehouse.trim() : '';
 
             errorBox.classList.add('hidden');
             document.getElementById('loginScreen').classList.add('hidden');
@@ -1905,16 +2090,13 @@
             sessionStorage.setItem('loggedInUser', 'stock');
             sessionStorage.setItem('userDepartment', dept);
             sessionStorage.setItem('userFullName', name);
-            sessionStorage.setItem('defaultWarehouse', defaultWarehouse);
 
-            const warehouseSelect = document.getElementById('warehouseFilterSelect');
-            if (warehouseSelect) {
-                updateWarehouseDropdownOptions();
-                if (defaultWarehouse) {
-                    const firstWh = defaultWarehouse.split(',')[0].trim().toUpperCase();
-                    warehouseSelect.value = firstWh;
-                } else {
-                    warehouseSelect.value = 'ALL';
+            const matchedUser = allowedUsersList.find(u => u.dept === dept && u.name === name);
+            if (matchedUser && matchedUser.defaultWarehouse) {
+                const firstWh = matchedUser.defaultWarehouse.split(',')[0].trim();
+                const whSelect = document.getElementById('warehouseFilterSelect');
+                if (whSelect && firstWh) {
+                    whSelect.value = firstWh;
                 }
             }
 
@@ -1927,7 +2109,6 @@
             sessionStorage.removeItem('loggedInUser');
             sessionStorage.removeItem('userDepartment');
             sessionStorage.removeItem('userFullName');
-            sessionStorage.removeItem('defaultWarehouse');
 
             document.getElementById('mainDashboard').classList.add('hidden');
             document.getElementById('loginScreen').classList.remove('hidden');
@@ -1945,27 +2126,14 @@
             if (sessionStorage.getItem('isLoggedIn') === 'true') {
                 const dept = sessionStorage.getItem('userDepartment') || '';
                 const name = sessionStorage.getItem('userFullName') || sessionStorage.getItem('loggedInUser') || 'stock';
-                const defaultWarehouse = sessionStorage.getItem('defaultWarehouse') || '';
                 const displayUser = (dept && name) ? `${dept}-${name}` : name;
 
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('mainDashboard').classList.remove('hidden');
                 document.getElementById('currentUserName').textContent = displayUser;
-
-                const warehouseSelect = document.getElementById('warehouseFilterSelect');
-                if (warehouseSelect) {
-                    updateWarehouseDropdownOptions();
-                    if (defaultWarehouse) {
-                        const firstWh = defaultWarehouse.split(',')[0].trim().toUpperCase();
-                        warehouseSelect.value = firstWh;
-                    } else {
-                        warehouseSelect.value = 'ALL';
-                    }
-                }
                 fetchTodayDataFromSupabase();
             }
         };
     </script>
-    
 </body>
 </html>
