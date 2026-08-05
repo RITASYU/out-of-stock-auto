@@ -808,9 +808,6 @@
             const updatedBy = handlerInput ? handlerInput.value.trim() : '';
 
             const nowIso = new Date().toISOString();
-            const existingIdx = statusHistoryList.findIndex(
-                item => item.warehouse === warehouse && item.materialId === materialId && item.reportDate === reportDate
-            );
 
             const newRecord = {
                 reportDate,
@@ -822,11 +819,7 @@
                 updatedAt: nowIso
             };
 
-            if (existingIdx >= 0) {
-                statusHistoryList[existingIdx] = newRecord;
-            } else {
-                statusHistoryList.push(newRecord);
-            }
+            statusHistoryList.push(newRecord);
 
             if (supabaseClient) {
                 const saveBtn = document.getElementById('saveProgressBtn');
@@ -843,33 +836,16 @@
                         updated_at: nowIso
                     };
 
-                    const { data: existingRecords, error: searchErr } = await supabaseClient
-                        .from('out_of_stock_items')
-                        .select('id')
-                        .eq('warehouse', warehouse)
-                        .eq('material_id', materialId)
-                        .eq('report_date', reportDate);
+                    const { error: insertErr } = await supabaseClient
+                        .from('out_of_stock_items_2')
+                        .insert(payload);
 
-                    let dbErr = null;
-                    if (!searchErr && existingRecords && existingRecords.length > 0) {
-                        const { error } = await supabaseClient
-                            .from('out_of_stock_items')
-                            .update(payload)
-                            .eq('id', existingRecords[0].id);
-                        dbErr = error;
-                    } else {
-                        const { error } = await supabaseClient
-                            .from('out_of_stock_items')
-                            .insert(payload);
-                        dbErr = error;
-                    }
-
-                    if (dbErr) {
-                        console.error('Supabase 儲存至 out_of_stock_items 失敗:', dbErr);
-                        if (dbErr.code === '42501') {
-                            showError('⚠️ Supabase 寫入權限不足 (RLS 42501)');
+                    if (insertErr) {
+                        console.error('Supabase 寫入 out_of_stock_items_2 失敗:', insertErr);
+                        if (insertErr.code === '42501') {
+                            showError('⚠️ Supabase 寫入權限不足 (RLS 42501)。請至 Supabase 控制台為 "out_of_stock_items_2" 資料表建立允許匿名存取的 RLS Policy，或暫時停用 RLS。');
                         } else {
-                            showError(`儲存失敗: ${dbErr.message || '資料庫錯誤'}`);
+                            showError(`儲存失敗: ${insertErr.message || '資料庫錯誤'}`);
                         }
                     }
                 } catch (err) {
@@ -1049,27 +1025,7 @@
                         updateStatusBadge('success', '已同步');
                         if (detailText) detailText.textContent = `成功從 Supabase 資料庫讀取 ${dbData.length} 筆當日報表紀錄。`;
                         
-                        if (supabaseClient) {
-                            try {
-                                const { data: statusRecords, error: statusErr } = await supabaseClient
-                                    .from('out_of_stock_items')
-                                    .select('*');
-                                
-                                if (!statusErr && statusRecords) {
-                                    statusHistoryList = statusRecords.map(rec => ({
-                                        reportDate: normalizeDateToISO(rec.report_date),
-                                        warehouse: rec.warehouse,
-                                        materialId: rec.material_id,
-                                        status: rec.status,
-                                        note: rec.notes || '',
-                                        handler: rec.updated_by || '',
-                                        updatedAt: rec.updated_at || rec.created_at || ''
-                                    }));
-                                }
-                            } catch (e) {
-                                console.warn('無法獲取 out_of_stock_items 歷史進度:', e);
-                            }
-                        }
+                        await loadStatusHistory();
                         renderAllTabs();
                         return;
                     }
@@ -1100,28 +1056,7 @@
                     if (detailText) detailText.textContent = `發現檔案但無法讀取，請確認 Storage 存取權限。`;
                 }
 
-                if (supabaseClient) {
-                    try {
-                        const { data: statusRecords, error: statusErr } = await supabaseClient
-                            .from('out_of_stock_items')
-                            .select('*');
-                        
-                        if (!statusErr && statusRecords) {
-                            statusHistoryList = statusRecords.map(rec => ({
-                                reportDate: normalizeDateToISO(rec.report_date),
-                                warehouse: rec.warehouse,
-                                materialId: rec.material_id,
-                                status: rec.status,
-                                note: rec.notes || '',
-                                handler: rec.updated_by || '',
-                                updatedAt: rec.updated_at || rec.created_at || ''
-                            }));
-                        }
-                    } catch (e) {
-                        console.warn('無法獲取 out_of_stock_items 歷史進度:', e);
-                    }
-                }
-
+                await loadStatusHistory();
                 renderAllTabs();
 
                 if (tab1Data.length === 0 && tab2Data.length === 0 && tab3Data.length === 0) {
@@ -1132,6 +1067,30 @@
                 console.error(err);
                 updateStatusBadge('warning', '擷取失敗');
                 if (detailText) detailText.textContent = `連線 Supabase 發生錯誤: ${err.message || '請確認網路與連線狀態'}`;
+            }
+        }
+
+        async function loadStatusHistory() {
+            if (!supabaseClient) return;
+            try {
+                const { data: statusRecords, error: statusErr } = await supabaseClient
+                    .from('out_of_stock_items_2')
+                    .select('*')
+                    .order('updated_at', { ascending: true });
+                
+                if (!statusErr && statusRecords) {
+                    statusHistoryList = statusRecords.map(rec => ({
+                        reportDate: normalizeDateToISO(rec.report_date),
+                        warehouse: rec.warehouse,
+                        materialId: rec.material_id,
+                        status: rec.status,
+                        note: rec.notes || '',
+                        handler: rec.updated_by || '',
+                        updatedAt: rec.updated_at || rec.created_at || ''
+                    }));
+                }
+            } catch (e) {
+                console.warn('無法獲取 out_of_stock_items_2 歷史進度:', e);
             }
         }
 
@@ -2075,7 +2034,7 @@
 
             if (!dept || !name) {
                 document.getElementById('loginErrorMsg').textContent = '請選擇服務單位並輸入您的姓名！';
-                errorBox.classList.remove('hidden');
+                errorBox.classList.add('hidden');
                 return;
             }
 
